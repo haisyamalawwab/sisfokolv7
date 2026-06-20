@@ -13,12 +13,16 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->web(append: [
             \App\Http\Middleware\ResolveTenant::class,
+            \App\Http\Middleware\ForcePasswordReset::class,
+            \App\Http\Middleware\BlockWhileImpersonating::class,
         ]);
         $middleware->alias([
             'tenant'             => \App\Http\Middleware\ResolveTenant::class,
             'role'               => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission'         => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
+            'force.reset'        => \App\Http\Middleware\ForcePasswordReset::class,
+            'impersonate.block'  => \App\Http\Middleware\BlockWhileImpersonating::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
