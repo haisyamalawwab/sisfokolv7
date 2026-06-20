@@ -1,0 +1,27 @@
+# Legacy Native App Folders
+LEGACY/*
+DOCS/
+backups/
+
+# Laravel App Configuration and Build Files (Root-relative mappings)
+sisfokol-laravel/.env
+sisfokol-laravel/.env.backup
+sisfokol-laravel/.env.production
+sisfokol-laravel/vendor/
+sisfokol-laravel/node_modules/
+sisfokol-laravel/public/storage
+sisfokol-laravel/public/build
+sisfokol-laravel/public/hot
+sisfokol-laravel/storage/*.key
+sisfokol-laravel/.phpunit.result.cache
+
+# IDE, OS, and Logs
+.idea/
+.vscode/
+.fleet/
+.nova/
+.zed/
+.DS_Store
+Thumbs.db
+npm-debug.log
+yarn-error.log
