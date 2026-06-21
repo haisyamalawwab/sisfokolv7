@@ -96,7 +96,7 @@ class User extends Authenticatable
     public function canImpersonate(): bool
     {
         return config('impersonate.enabled', false)
-            && $this->hasRole(['super_admin', 'admin_sekolah']);
+            && ($this->hasRole(['super_admin', 'admin_sekolah', 'admin']) || in_array($this->tipe, ['super_admin', 'admin_sekolah']));
     }
 
     public function canBeImpersonated($target): bool
@@ -104,11 +104,11 @@ class User extends Authenticatable
         if ($this->id === $target->id) return false;
         if (! $target->aktif) return false;
 
-        // SuperAdmin → siapa saja
-        if ($this->isSuperAdmin()) return true;
+        // SuperAdmin -> anyone
+        if ($this->isSuperAdmin() || $this->tipe === 'super_admin' || $this->hasRole('super_admin')) return true;
 
-        // Admin Sekolah → siapa saja di tenant yang sama
-        if ($this->hasRole('admin_sekolah')) {
+        // Admin Sekolah / Admin -> anyone in the same tenant
+        if ($this->hasRole(['admin_sekolah', 'admin']) || $this->tipe === 'admin_sekolah') {
             return $this->tenant_id === $target->tenant_id;
         }
 
