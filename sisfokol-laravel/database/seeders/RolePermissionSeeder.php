@@ -74,6 +74,7 @@ class RolePermissionSeeder extends Seeder
 
             // Settings
             'setting.*',
+            'plugin.activate',
         ];
 
         foreach ($permissions as $permission) {
