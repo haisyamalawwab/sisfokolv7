@@ -16,7 +16,10 @@ class PluginActivationTest extends TestCase
     public function test_admin_can_activate_plugin_for_their_tenant(): void
     {
         $this->seed([RolePermissionSeeder::class, SuperAdminSeeder::class]);
-        $admin = User::where('username', 'admin')->first();
+        $tenant = Tenant::create(['nama' => 'Tenant Test', 'npsn' => '12345678']);
+        $admin = User::factory()->create(['tenant_id' => $tenant->id, 'tipe' => 'admin_sekolah']);
+        $admin->assignRole('admin');
+
         $plugin = Plugin::create(['kode' => 'testplugin', 'nama' => 'Test Plugin']);
 
         $response = $this->actingAs($admin)
@@ -24,9 +27,6 @@ class PluginActivationTest extends TestCase
 
         $response->assertRedirect();
         
-        // Use withoutGlobalScopes because TenantPlugin uses BelongsToTenant scope 
-        // which matches tenant_id of current user, but since $admin is acting,
-        // it should match. Let's assert database has it.
         $this->assertDatabaseHas('tenant_plugins', [
             'tenant_id' => $admin->tenant_id,
             'plugin_id' => $plugin->id,
@@ -37,10 +37,11 @@ class PluginActivationTest extends TestCase
     public function test_admin_can_deactivate_plugin(): void
     {
         $this->seed([RolePermissionSeeder::class, SuperAdminSeeder::class]);
-        $admin = User::where('username', 'admin')->first();
+        $tenant = Tenant::create(['nama' => 'Tenant Test', 'npsn' => '12345678']);
+        $admin = User::factory()->create(['tenant_id' => $tenant->id, 'tipe' => 'admin_sekolah']);
+        $admin->assignRole('admin');
+
         $plugin = Plugin::create(['kode' => 'testplugin', 'nama' => 'Test Plugin']);
-        
-        // Avoid global scope constraints during seeding
         TenantPlugin::create(['tenant_id' => $admin->tenant_id, 'plugin_id' => $plugin->id, 'aktif' => true]);
 
         $response = $this->actingAs($admin)
@@ -59,9 +60,13 @@ class PluginActivationTest extends TestCase
     {
         $this->seed([RolePermissionSeeder::class, SuperAdminSeeder::class]);
         config(['impersonate.enabled' => true]);
-        $super = User::where('username', 'superadmin')->first();
-        $admin = User::where('username', 'admin')->first();
         
+        $super = User::where('username', 'superadmin')->first();
+        
+        $tenant = Tenant::create(['nama' => 'Tenant Test', 'npsn' => '12345678']);
+        $admin = User::factory()->create(['tenant_id' => $tenant->id, 'tipe' => 'admin_sekolah']);
+        $admin->assignRole('admin');
+
         $this->actingAs($super)->post("/impersonate/{$admin->id}/start");
 
         $plugin = Plugin::create(['kode' => 'testplugin', 'nama' => 'Test']);
@@ -76,13 +81,13 @@ class PluginActivationTest extends TestCase
     public function test_non_admin_cannot_activate(): void
     {
         $this->seed([RolePermissionSeeder::class, SuperAdminSeeder::class]);
-        $tenant = Tenant::create(['nama' => 'T1', 'npsn' => '11111111']);
+        $tenant = Tenant::create(['nama' => 'Tenant Test', 'npsn' => '12345678']);
         $user = User::factory()->create(['tenant_id' => $tenant->id]);
         
         // Wrap Spatie role/permission query in team context
         $registrar = app(\Spatie\Permission\PermissionRegistrar::class);
         $registrar->setPermissionsTeamId($tenant->id);
-        $user->assignRole('guru');
+        $user->assignRole('teacher');
         $registrar->setPermissionsTeamId(null);
 
         $plugin = Plugin::create(['kode' => 'testplugin', 'nama' => 'Test']);
