@@ -1,4 +1,4 @@
-@extends('layouts.adminlte')
+@extends('layouts.app')
 
 @section('title', 'Tahun Pelajaran')
 @section('page-title', 'Data Tahun Pelajaran')

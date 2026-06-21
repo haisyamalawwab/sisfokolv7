@@ -1,4 +1,4 @@
-@extends('layouts.adminlte')
+@extends('layouts.app')
 
 @section('title', 'Jadwal')
 @section('page-title', 'Data Jadwal Pelajaran')

@@ -1,4 +1,4 @@
-@extends('layouts.adminlte')
+@extends('layouts.app')
 
 @section('title', 'Tambah Pembayaran')
 @section('page-title', 'Tambah Pembayaran Siswa')

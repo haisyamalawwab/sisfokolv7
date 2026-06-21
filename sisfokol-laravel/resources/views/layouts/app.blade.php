@@ -38,6 +38,112 @@
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
+
+        /* Modern Breeze/Livewire Style CSS Bridge for Bootstrap/AdminLTE classes */
+        .row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .col-md-12 {
+            grid-column: 1 / -1;
+        }
+        .card {
+            background-color: rgba(15, 23, 42, 0.45); /* bg-slate-900/45 */
+            border: 1px solid rgba(51, 65, 85, 0.3); /* border-slate-700/30 */
+            backdrop-filter: blur(16px);
+            border-radius: 1rem;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.2);
+            background-color: rgba(15, 23, 42, 0.3);
+        }
+        .card-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #f8fafc;
+            margin: 0;
+        }
+        .card-body {
+            padding: 1.5rem;
+        }
+        .info-box {
+            display: flex;
+            align-items: center;
+            background-color: rgba(15, 23, 42, 0.45);
+            border: 1px solid rgba(51, 65, 85, 0.3);
+            backdrop-filter: blur(16px);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            gap: 1.25rem;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        .info-box-icon {
+            display: flex;
+            height: 3.5rem;
+            width: 3.5rem;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.75rem;
+            font-size: 1.35rem;
+            color: #ffffff;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .info-box-content {
+            display: flex;
+            flex-direction: column;
+        }
+        .info-box-text {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .info-box-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #f8fafc;
+            margin-top: 0.15rem;
+        }
+        .bg-primary { background-image: linear-gradient(135deg, #6366f1, #4f46e5); } /* Indigo Gradient */
+        .bg-success { background-image: linear-gradient(135deg, #10b981, #059669); } /* Emerald Gradient */
+        .bg-warning { background-image: linear-gradient(135deg, #f59e0b, #d97706); } /* Amber Gradient */
+        .bg-info { background-image: linear-gradient(135deg, #14b8a6, #0d9488); } /* Teal Gradient */
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.875rem;
+        }
+        .table th {
+            padding: 1rem 1.5rem;
+            font-weight: 600;
+            color: #94a3b8;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.3);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+        .table td {
+            padding: 1rem 1.5rem;
+            color: #cbd5e1;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.15);
+        }
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(30, 41, 59, 0.15);
+        }
+        .table-striped tbody tr:hover {
+            background-color: rgba(30, 41, 59, 0.3);
+            transition: background-color 0.2s ease;
+        }
     </style>
 </head>
 <body class="h-full text-slate-100 antialiased" x-data="{ sidebarOpen: false }">

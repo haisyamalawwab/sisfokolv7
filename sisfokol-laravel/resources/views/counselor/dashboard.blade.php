@@ -1,4 +1,4 @@
-@extends('layouts.adminlte')
+@extends('layouts.app')
 
 @section('title', 'Dashboard Guru BK')
 @section('page-title', 'Dashboard Guru BK')

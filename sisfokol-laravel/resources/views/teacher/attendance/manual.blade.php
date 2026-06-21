@@ -1,4 +1,4 @@
-@extends('layouts.adminlte')
+@extends('layouts.app')
 
 @section('title', 'Presensi Manual')
 @section('page-title', 'Entri Presensi Manual')
