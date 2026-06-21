@@ -52,7 +52,10 @@ class EnsurePluginEnabledTest extends TestCase
     {
         $tenant = Tenant::create(['nama' => 'T1', 'npsn' => '11111111']);
         $user = User::factory()->create(['tenant_id' => $tenant->id]);
-        $plugin = Plugin::create(['kode' => 'kurikulum', 'nama' => 'Kurikulum']);
+        $plugin = Plugin::updateOrCreate(
+            ['kode' => 'kurikulum'],
+            ['nama' => 'Kurikulum']
+        );
         
         TenantPlugin::create([
             'tenant_id' => $tenant->id,
