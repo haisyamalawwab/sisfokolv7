@@ -176,6 +176,82 @@
             font-size: 16px;
             margin-right: 10px;
         }
+
+        /* ── Demo Quick Login Panel ─────────────────────────── */
+        .demo-panel {
+            margin-top: 24px;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            padding-top: 20px;
+        }
+        .demo-label {
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .demo-label::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: rgba(255,255,255,0.07);
+        }
+        .demo-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .demo-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.10);
+            background: rgba(15, 23, 42, 0.4);
+            color: #cbd5e1;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            user-select: none;
+        }
+        .demo-chip:hover {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.15);
+            color: #a5b4fc;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(99,102,241,0.2);
+        }
+        .demo-chip.active {
+            border-color: #a855f7;
+            background: rgba(168, 85, 247, 0.2);
+            color: #d8b4fe;
+        }
+        .demo-chip .chip-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .chip-superadmin  { background: #f43f5e; }
+        .chip-admin       { background: #f97316; }
+        .chip-admin-tenant{ background: #eab308; }
+        .chip-piket       { background: #22c55e; }
+        .chip-bk          { background: #06b6d4; }
+        .chip-guru        { background: #6366f1; }
+        .chip-walikelas   { background: #a855f7; }
+        .chip-siswa       { background: #94a3b8; }
+        .demo-hint {
+            margin-top: 10px;
+            font-size: 11px;
+            color: #475569;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -190,7 +266,7 @@
             <p class="logo-subtitle">Sistem Informasi Sekolah Multi-Tenant</p>
         </div>
 
-        <form method="POST" action="{{ route('login') }}">
+        <form method="POST" action="{{ route('login') }}" id="loginForm">
             @csrf
 
             @if ($errors->any())
@@ -231,9 +307,68 @@
                 Masuk <i class="fas fa-arrow-right ms-2"></i>
             </button>
         </form>
+
+        {{-- ── Demo Quick Login ─────────────────────────────── --}}
+        @if(config('app.env') === 'local')
+        <div class="demo-panel">
+            <div class="demo-label"><i class="fas fa-bolt" style="color:#6366f1;font-size:11px;"></i> Demo Akun</div>
+            <div class="demo-chips">
+                <button type="button" class="demo-chip" id="chip-superadmin"
+                    onclick="quickLogin('superadmin','SuperAdmin#2026','chip-superadmin')">
+                    <span class="chip-dot chip-superadmin"></span>SuperAdmin
+                </button>
+                <button type="button" class="demo-chip" id="chip-admin"
+                    onclick="quickLogin('admin','password','chip-admin')">
+                    <span class="chip-dot chip-admin"></span>Admin Global
+                </button>
+                <button type="button" class="demo-chip" id="chip-admin-tenant"
+                    onclick="quickLogin('admin.sekolah','demo1234','chip-admin-tenant')">
+                    <span class="chip-dot chip-admin-tenant"></span>Admin Sekolah
+                </button>
+                <button type="button" class="demo-chip" id="chip-piket"
+                    onclick="quickLogin('piket.demo','demo1234','chip-piket')">
+                    <span class="chip-dot chip-piket"></span>Guru Piket
+                </button>
+                <button type="button" class="demo-chip" id="chip-bk"
+                    onclick="quickLogin('bk.demo','demo1234','chip-bk')">
+                    <span class="chip-dot chip-bk"></span>Guru BK
+                </button>
+                <button type="button" class="demo-chip" id="chip-guru"
+                    onclick="quickLogin('guru.demo','demo1234','chip-guru')">
+                    <span class="chip-dot chip-guru"></span>Guru Mapel
+                </button>
+                <button type="button" class="demo-chip" id="chip-walikelas"
+                    onclick="quickLogin('walikelas.demo','demo1234','chip-walikelas')">
+                    <span class="chip-dot chip-walikelas"></span>Wali Kelas
+                </button>
+                <button type="button" class="demo-chip" id="chip-siswa"
+                    onclick="quickLogin('siswa.2024001','demo1234','chip-siswa')">
+                    <span class="chip-dot chip-siswa"></span>Siswa
+                </button>
+            </div>
+            <p class="demo-hint">Klik akun lalu tekan <kbd style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;font-size:10px;">Masuk</kbd></p>
+        </div>
+        @endif
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function quickLogin(username, password, chipId) {
+        // Fill fields
+        document.getElementById('username').value = username;
+        document.getElementById('password').value = password;
+
+        // Visual feedback: mark active chip
+        document.querySelectorAll('.demo-chip').forEach(c => c.classList.remove('active'));
+        const chip = document.getElementById(chipId);
+        if (chip) chip.classList.add('active');
+
+        // Auto-submit after short delay so user can see the fill
+        setTimeout(() => {
+            document.getElementById('loginForm').submit();
+        }, 280);
+    }
+</script>
 </body>
 </html>
