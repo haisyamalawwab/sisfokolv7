@@ -7,6 +7,7 @@ use App\Models\Attendance;
 use App\Models\Absence;
 use App\Models\Permit;
 use App\Models\ReportNote;
+use App\Models\SchoolProfile;
 use App\Models\Student;
 use App\Models\StudentSemesterScore;
 use App\Models\Classroom;
@@ -76,20 +77,24 @@ class RaporGeneratorService
 
         $note = $reportNoteRecord ? $reportNoteRecord->note : 'Tingkatkan terus motivasi belajarmu untuk meraih cita-cita.';
 
+        // 5. Fetch School Profile (use first record — single-tenant; multi-tenant: filter by tenant_id)
+        $schoolProfile = SchoolProfile::first();
+
         return [
-            'student' => $student,
-            'classroom' => $classroom,
-            'academicYear' => $academicYear,
-            'semester' => $semester,
-            'scores' => $scores,
-            'attendance' => [
-                'present' => $present,
-                'late' => $late,
-                'sick' => $sick,
+            'student'       => $student,
+            'classroom'     => $classroom,
+            'academicYear'  => $academicYear,
+            'semester'      => $semester,
+            'scores'        => $scores,
+            'attendance'    => [
+                'present'    => $present,
+                'late'       => $late,
+                'sick'       => $sick,
                 'permission' => $permission,
-                'absent' => $absent,
+                'absent'     => $absent,
             ],
-            'note' => $note,
+            'note'          => $note,
+            'schoolProfile' => $schoolProfile,
         ];
     }
 

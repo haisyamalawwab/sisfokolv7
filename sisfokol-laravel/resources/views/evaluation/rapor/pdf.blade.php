@@ -108,8 +108,13 @@
     <table class="header-table">
         <tr>
             <td style="text-align: center;">
-                <div class="school-name">SMA DEMO SISFOKOL</div>
-                <div class="school-address">Jl. Pendidikan No. 1, Kota Demo • Telp: 021-1234567 • Email: info@smademo.sch.id</div>
+                <div class="school-name">{{ strtoupper($schoolProfile?->name ?? 'NAMA SEKOLAH') }}</div>
+                <div class="school-address">
+                    {{ $schoolProfile?->address ?? 'Alamat Sekolah' }},
+                    {{ $schoolProfile?->city ?? 'Kota' }} &bull;
+                    Telp: {{ $schoolProfile?->phone ?? '-' }} &bull;
+                    Email: {{ $schoolProfile?->email ?? '-' }}
+                </div>
             </td>
         </tr>
     </table>
@@ -137,7 +142,7 @@
         <tr>
             <td>Sekolah</td>
             <td>:</td>
-            <td>SMA Demo Sisfokol</td>
+            <td>{{ $schoolProfile?->name ?? 'Nama Sekolah' }}</td>
             <td>Tahun Ajaran</td>
             <td>:</td>
             <td>{{ $academicYear->name }}</td>
@@ -219,7 +224,7 @@
             </td>
             <td></td>
             <td>
-                Kota Demo, {{ now()->format('d F Y') }}<br>
+                {{ $schoolProfile?->city ?? 'Kota' }}, {{ now()->format('d F Y') }}<br>
                 Wali Kelas
                 <br><br><br><br>
                 <strong>{{ $classroom->homeroomTeacher?->name ?? 'Wali Kelas' }}</strong>
@@ -230,8 +235,8 @@
                 Mengetahui,<br>
                 Kepala Sekolah
                 <br><br><br><br>
-                <strong>Dr. H. Ahmad Fauzi, M.Pd.</strong><br>
-                NIP. 197508122000031002
+                <strong>{{ $schoolProfile?->headmaster_name ?? 'Kepala Sekolah' }}</strong><br>
+                NIP. {{ $schoolProfile?->headmaster_nip ?? '-' }}
             </td>
         </tr>
     </table>

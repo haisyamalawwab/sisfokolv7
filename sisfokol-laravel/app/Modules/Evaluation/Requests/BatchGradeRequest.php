@@ -8,7 +8,19 @@ class BatchGradeRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+        if (!$user) return false;
+
+        // SuperAdmin: akses penuh
+        if ($user->isSuperAdmin()) return true;
+
+        // Admin sekolah: akses penuh ke semua kelas
+        if ($user->hasRole(['admin_sekolah', 'admin'])) return true;
+
+        // Guru (tipe pegawai): hanya boleh input nilai
+        if ($user->tipe === 'pegawai') return true;
+
+        return false;
     }
 
     public function rules(): array
