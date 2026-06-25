@@ -309,7 +309,7 @@
         </form>
 
         {{-- ── Demo Quick Login ─────────────────────────────── --}}
-        @if(config('app.env') === 'local')
+        @if(config('app.env') === 'local' && config('app.debug'))
         <div class="demo-panel">
             <div class="demo-label"><i class="fas fa-bolt" style="color:#6366f1;font-size:11px;"></i> Demo Akun</div>
             <div class="demo-chips">
