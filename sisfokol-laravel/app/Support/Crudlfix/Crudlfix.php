@@ -59,11 +59,24 @@ trait Crudlfix
                 Gate::authorize($action, $cfg->model);
             }
         } elseif ($cfg->authType === 'permission' && $cfg->authorize) {
-            // Permission mode: use $user->can() for Spatie wildcard support
+            // Permission mode: use $user->can() with Spatie team context
             $permission = "{$cfg->authorize}.{$action}";
             $user = auth()->user();
 
-            if (!$user || !$user->can($permission)) {
+            if (!$user) {
+                abort(403, 'Tidak memiliki akses.');
+            }
+
+            // Set Spatie team context for team-based permissions
+            $registrar = app(\Spatie\Permission\PermissionRegistrar::class);
+            $originalTeamId = $registrar->getPermissionsTeamId();
+            $registrar->setPermissionsTeamId($user->tenant_id ?? 0);
+
+            $hasPermission = $user->can($permission);
+
+            $registrar->setPermissionsTeamId($originalTeamId);
+
+            if (!$hasPermission) {
                 abort(403, 'Tidak memiliki akses.');
             }
         }

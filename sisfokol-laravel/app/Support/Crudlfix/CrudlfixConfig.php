@@ -75,6 +75,18 @@ class CrudlfixConfig
     /** Flash message template — {action} and {name} placeholders */
     public ?array $messages = null;
 
+    /** Cascading select definitions */
+    public ?array $cascades = null;
+
+    /** Search select definitions (Select2 replacement) */
+    public ?array $searchSelects = null;
+
+    /** Data table configuration */
+    public ?array $dataTable = null;
+
+    /** Live edit configuration */
+    public ?array $liveEdit = null;
+
     // ─── CONSTRUCTORS ───────────────────────────────────────────────
 
     public static function make(array $config = []): static
