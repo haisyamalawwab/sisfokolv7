@@ -6,29 +6,14 @@
             <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
             <input
                 type="text"
-                wire:model.live.debounce.300ms="search"
+                wire:model.live.debounce.300ms="searchQuery"
                 placeholder="Cari..."
                 class="w-full pl-10 pr-4 py-2 bg-slate-800/50 border border-slate-700 rounded-xl text-slate-200 placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
             />
         </div>
 
-        {{-- Filter buttons --}}
-        @if(!empty($config->filters))
-            @foreach($config->filters as $key => $filterOptions)
-                <select
-                    wire:model.live="activeFilters.{{ $key }}"
-                    class="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-xl text-slate-200 focus:ring-2 focus:ring-indigo-500"
-                >
-                    <option value="">Semua {{ ucfirst($key) }}</option>
-                    @foreach($filterOptions as $value => $label)
-                        <option value="{{ $value }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            @endforeach
-        @endif
-
         {{-- Export --}}
-        @if(!empty($config->exportColumns))
+        @if(!empty($exportColumns))
             <button
                 wire:click="export"
                 class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition"
@@ -113,16 +98,16 @@
                         {{-- Actions --}}
                         <td class="px-4 py-3 text-right">
                             <div class="flex items-center justify-end gap-2">
-                                @if($config->route)
+                                @if($routePrefix)
                                     <a
-                                        href="{{ route($config->route . '.show', $row->id) }}"
+                                        href="{{ route($routePrefix . '.show', $row->id) }}"
                                         class="px-2 py-1 text-xs bg-slate-700 hover:bg-slate-600 rounded-lg transition"
                                         title="Detail"
                                     >
                                         <i class="fas fa-eye w-3 h-3"></i>
                                     </a>
                                     <a
-                                        href="{{ route($config->route . '.edit', $row->id) }}"
+                                        href="{{ route($routePrefix . '.edit', $row->id) }}"
                                         class="px-2 py-1 text-xs bg-indigo-600 hover:bg-indigo-500 rounded-lg transition"
                                         title="Edit"
                                     >

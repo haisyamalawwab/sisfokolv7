@@ -48,24 +48,37 @@
     {{-- Content --}}
     @if($mode === 'index')
         @livewire('crudlfix.crudlfix-table', [
-            'config' => $config,
-            'viewData' => $viewData,
+            'model' => $modelClass,
+            'route' => $routePrefix,
             'columns' => $columns,
-        ], key('table-' . $config->route))
+            'search' => $searchFields,
+            'with' => $withRelations,
+            'filters' => $filterConfig,
+            'perPage' => $perPage,
+            'defaultSort' => $defaultSort,
+            'defaultDir' => $defaultDir,
+            'exportColumns' => null,
+            'authorize' => $permissionPrefix,
+            'authType' => $authMode,
+        ], key('table-' . $routePrefix))
 
     @elseif($mode === 'create')
         @livewire('crudlfix.crudlfix-form', [
-            'config' => $config,
-            'viewData' => $viewData,
+            'model' => $modelClass,
+            'route' => $routePrefix,
             'formFields' => $formFields,
+            'rules' => $validationRules,
+            'viewData' => $extraViewData,
             'isEdit' => false,
-        ], key('form-create-' . $config->route))
+        ], key('form-create-' . $routePrefix))
 
     @elseif($mode === 'edit')
         @livewire('crudlfix.crudlfix-form', [
-            'config' => $config,
-            'viewData' => $viewData,
+            'model' => $modelClass,
+            'route' => $routePrefix,
             'formFields' => $formFields,
+            'rules' => $validationRules,
+            'viewData' => $extraViewData,
             'isEdit' => true,
             'editId' => $editId,
         ], key('form-edit-' . $editId))

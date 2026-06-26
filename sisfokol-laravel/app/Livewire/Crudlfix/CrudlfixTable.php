@@ -8,29 +8,78 @@ use Livewire\Component;
 /**
  * Livewire data table component for Crudlfix.
  *
- * Provides search, sort, filter, pagination, and bulk actions
- * without page reload.
+ * Accepts raw arrays and builds CrudlfixConfig internally.
  */
 class CrudlfixTable extends Component
 {
     use \App\Livewire\Crudlfix\Traits\HasCrudlfixTable;
     use \App\Livewire\Crudlfix\Traits\HasCrudlfixActions;
 
-    public CrudlfixConfig $config;
-    public array $viewData = [];
+    // Raw config (Livewire-safe)
+    public string $modelClass = '';
+    public string $routePrefix = '';
     public array $columns = [];
+    public array $searchFields = [];
+    public array $withRelations = [];
+    public array $filterConfig = [];
+    public int $perPage = 15;
+    public string $defaultSort = 'created_at';
+    public string $defaultDir = 'desc';
+    public ?array $exportColumns = null;
+    public ?string $permissionPrefix = null;
+    public ?string $authMode = null;
 
-    public function mount(CrudlfixConfig $config, array $viewData = [], array $columns = []): void
-    {
-        $this->config = $config;
-        $this->viewData = $viewData;
+    // Built internally
+    protected ?CrudlfixConfig $_config = null;
+
+    public function mount(
+        string $model,
+        string $route,
+        array $columns = [],
+        array $search = [],
+        array $with = [],
+        array $filters = [],
+        int $perPage = 15,
+        string $defaultSort = 'created_at',
+        string $defaultDir = 'desc',
+        ?array $exportColumns = null,
+        ?string $authorize = null,
+        ?string $authType = null,
+    ): void {
+        $this->modelClass = $model;
+        $this->routePrefix = $route;
         $this->columns = $columns;
-        $this->initTable($config);
+        $this->searchFields = $search;
+        $this->withRelations = $with;
+        $this->filterConfig = $filters;
+        $this->perPage = $perPage;
+        $this->defaultSort = $defaultSort;
+        $this->defaultDir = $defaultDir;
+        $this->exportColumns = $exportColumns;
+        $this->permissionPrefix = $authorize;
+        $this->authMode = $authType;
+
+        $this->initTable($this->getConfigProperty());
     }
 
-    protected function getConfigProperty(): CrudlfixConfig
+    public function getConfigProperty(): CrudlfixConfig
     {
-        return $this->config;
+        if ($this->_config === null) {
+            $this->_config = CrudlfixConfig::make([
+                'model' => $this->modelClass,
+                'route' => $this->routePrefix,
+                'search' => $this->searchFields,
+                'with' => $this->withRelations,
+                'filters' => $this->filterConfig,
+                'perPage' => $this->perPage,
+                'defaultSort' => $this->defaultSort,
+                'defaultDir' => $this->defaultDir,
+                'exportColumns' => $this->exportColumns,
+                'authorize' => $this->permissionPrefix,
+                'authType' => $this->authMode,
+            ]);
+        }
+        return $this->_config;
     }
 
     public function render()

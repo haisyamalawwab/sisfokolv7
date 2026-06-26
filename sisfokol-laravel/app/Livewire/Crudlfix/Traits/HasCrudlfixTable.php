@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
  */
 trait HasCrudlfixTable
 {
-    public string $search = '';
+    public string $searchQuery = '';
     public string $sortField = '';
     public string $sortDirection = 'asc';
     public array $activeFilters = [];
@@ -29,7 +29,7 @@ trait HasCrudlfixTable
         $this->perPage = $config->perPage ?? 15;
     }
 
-    public function updatedSearch(): void
+    public function updatedSearchQuery(): void
     {
         $this->currentPage = 1;
     }
@@ -102,7 +102,7 @@ trait HasCrudlfixTable
         }
 
         // Apply search
-        if ($this->search && $config->search) {
+        if ($this->searchQuery && $config->search) {
             $query->where(function ($q) use ($config) {
                 foreach ($config->search as $field) {
                     if (str_contains($field, '.')) {
@@ -110,10 +110,10 @@ trait HasCrudlfixTable
                         $relation = $parts[0];
                         $relationField = $parts[1];
                         $q->orWhereHas($relation, function ($rq) use ($relationField) {
-                            $rq->where($relationField, 'like', "%{$this->search}%");
+                            $rq->where($relationField, 'like', "%{$this->searchQuery}%");
                         });
                     } else {
-                        $q->orWhere($field, 'like', "%{$this->search}%");
+                        $q->orWhere($field, 'like', "%{$this->searchQuery}%");
                     }
                 }
             });

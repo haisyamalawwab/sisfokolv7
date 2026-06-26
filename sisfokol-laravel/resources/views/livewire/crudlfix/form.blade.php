@@ -6,8 +6,8 @@
                     $label = $options['label'] ?? ucfirst(str_replace('_', ' ', $field));
                     $type = $options['type'] ?? 'text';
                     $required = false;
-                    if (!empty($config->rules[$field])) {
-                        $rules = is_string($config->rules[$field]) ? explode('|', $config->rules[$field]) : [];
+                    if (!empty($validationRules[$field])) {
+                        $rules = is_string($validationRules[$field]) ? explode('|', $validationRules[$field]) : [];
                         $required = in_array('required', $rules);
                     }
                     $placeholder = $options['placeholder'] ?? '';
@@ -82,7 +82,7 @@
         {{-- Submit --}}
         <div class="mt-6 flex items-center justify-end gap-3">
             <a
-                href="{{ route($config->route . '.index') }}"
+                href="{{ route($routePrefix . '.index') }}"
                 class="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-xl transition text-sm"
             >
                 Batal

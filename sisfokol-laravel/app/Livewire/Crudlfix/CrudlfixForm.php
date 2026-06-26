@@ -8,28 +8,50 @@ use Livewire\Component;
 /**
  * Livewire form component for Crudlfix.
  *
- * Provides real-time validation and save functionality
- * by reading from CrudlfixConfig.
+ * Accepts raw arrays and builds CrudlfixConfig internally.
  */
 class CrudlfixForm extends Component
 {
     use \App\Livewire\Crudlfix\Traits\HasCrudlfixForm;
 
-    public CrudlfixConfig $config;
-    public array $viewData = [];
+    // Raw config (Livewire-safe)
+    public string $modelClass = '';
+    public string $routePrefix = '';
     public array $formFields = [];
+    public array $validationRules = [];
+    public array $extraViewData = [];
 
-    public function mount(CrudlfixConfig $config, array $viewData = [], array $formFields = [], bool $isEdit = false, ?int $editId = null): void
-    {
-        $this->config = $config;
-        $this->viewData = $viewData;
+    // Built internally
+    protected ?CrudlfixConfig $_config = null;
+
+    public function mount(
+        string $model,
+        string $route,
+        array $formFields = [],
+        array $rules = [],
+        array $viewData = [],
+        bool $isEdit = false,
+        ?int $editId = null,
+    ): void {
+        $this->modelClass = $model;
+        $this->routePrefix = $route;
         $this->formFields = $formFields;
-        $this->initForm($config, $editId);
+        $this->validationRules = $rules;
+        $this->extraViewData = $viewData;
+
+        $this->initForm($this->getConfigProperty(), $editId);
     }
 
-    protected function getConfigProperty(): CrudlfixConfig
+    public function getConfigProperty(): CrudlfixConfig
     {
-        return $this->config;
+        if ($this->_config === null) {
+            $this->_config = CrudlfixConfig::make([
+                'model' => $this->modelClass,
+                'route' => $this->routePrefix,
+                'rules' => $this->validationRules,
+            ]);
+        }
+        return $this->_config;
     }
 
     public function save(): void
@@ -38,7 +60,7 @@ class CrudlfixForm extends Component
 
         if ($result) {
             $this->dispatch('crudlfix-saved', [
-                'route' => $this->config->route,
+                'route' => $this->routePrefix,
                 'isEdit' => $this->isEdit,
             ]);
         }

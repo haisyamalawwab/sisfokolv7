@@ -99,5 +99,5 @@ trait HasCrudlfixActions
     /**
      * Build table query. Must be implemented by HasCrudlfixTable.
      */
-    abstract protected function buildTableQuery($config);
+    abstract protected function buildTableQuery(CrudlfixConfig $config);
 }
