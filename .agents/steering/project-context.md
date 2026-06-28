@@ -61,14 +61,14 @@ TAHAP 6: Testing & Deployment [AKHIR]
 | ADR-006 | Granular DB-driven RBAC (Spatie teams) | ✅ Aktif |
 | ADR-009 | Plugin system plug-and-play | ✅ Aktif |
 | ADR-010 | RBAC sampai menu & field level | ✅ Aktif |
-| **ADR-011** | **UI: Blade SSR + Alpine.js (BUKAN Livewire, BUKAN HTMX)** | ✅ **BARU** |
+| **ADR-011** | **UI: Blade SSR + Alpine.js + Livewire Hybrid (CRUD only)** | ✅ **UPDATED** |
 
 ### UI Architecture (ADR-011):
 ```
-FASE 1 (MVP): Blade SSR + Alpine.js + Tailwind CSS
+FASE 1 (MVP): Blade SSR + Alpine.js + Tailwind CSS + Livewire (Hybrid)
   • Server render HTML sekali, selesai (paling ringan)
   • Alpine.js untuk interaktivitas client-side
-  • Tidak ada dependency baru
+  • Livewire v4 untuk operasi CRUD (form, tabel, modal)
   • API: TIDAK ADA di fase ini
 
 FASE 2 (SETAP MVP): + REST API (Sanctum) — hanya di titik khusus
@@ -95,7 +95,6 @@ API akan diimplementasi di Fase 2 SETAP MVP selesai
 
 ## What NOT To Do
 
-- ❌ Jangan install Livewire atau HTMX (keputusan: Blade + Alpine.js — ADR-011)
 - ❌ Jangan implementasi API (keputusan: Fase 2 — DEV_DOCS-053)
 - ❌ Jangan buat dokumen audit baru (audit phase ditutup — DEV_DOCS-052)
 - ❌ Jangan klaim "selesai" tanpa verifikasi fisik
@@ -110,6 +109,8 @@ API akan diimplementasi di Fase 2 SETAP MVP selesai
 5. **BelongsToTenant trait wajib** di semua model domain
 6. **DB::transaction + lockForUpdate()** di PembayaranService
 7. **Tulis DEV_DOCS baru** setiap sesi panjang / keputusan penting
+8. **Livewire untuk CRUD** — gunakan Livewire components untuk operasi CRUD
+9. **Blade SSR untuk non-CRUD** — dashboard, reports, halaman statis
 
 ## Key Documents
 
@@ -120,7 +121,9 @@ API akan diimplementasi di Fase 2 SETAP MVP selesai
 | `DEV_DOCS/053a` | Verifikasi fisik codebase |
 | `DEV_DOCS/053b` | Verifikasi API-Driven MVC |
 | `DEV_DOCS/053c` | Reusable component library spec |
-| `ADR/011` | UI Architecture decision |
+| `ADR/011` | UI Architecture decision (Hybrid) |
+| `docs/dev-reports/2026-06-26-hybrid-crudlfix-livewire.md` | Livewire implementation report |
+| `sisfokol-laravel/docs/livewire-crudlfix-guide.md` | Livewire Crudlfix usage guide |
 
 ## Agent Folders
 
