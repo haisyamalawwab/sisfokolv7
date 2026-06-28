@@ -123,7 +123,7 @@ API akan diimplementasi di Fase 2 SETAP MVP selesai
 | `DEV_DOCS/053c` | Reusable component library spec |
 | `ADR/011` | UI Architecture decision (Hybrid) |
 | `docs/dev-reports/2026-06-26-hybrid-crudlfix-livewire.md` | Livewire implementation report |
-| `sisfokol-laravel/docs/livewire-crudlfix-guide.md` | Livewire Crudlfix usage guide |
+| `DEV_DOCS/072_panduan_livewire_crudlfix_hybrid_20260626.md` | Livewire Crudlfix usage guide |
 
 ## Agent Folders
 

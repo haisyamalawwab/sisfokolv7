@@ -344,7 +344,7 @@ Fitur export CSV sudah diimplementasikan di `HasCrudlfixActions` tapi belum teru
 
 | Dokumen | Lokasi | Deskripsi |
 |---------|--------|-----------|
-| Livewire Crudlfix Guide | `sisfokol-laravel/docs/livewire-crudlfix-guide.md` | Panduan penggunaan untuk developer |
+| Livewire Crudlfix Guide | `DEV_DOCS/072_panduan_livewire_crudlfix_hybrid_20260626.md` | Panduan penggunaan untuk developer |
 | Dev Report | `docs/dev-reports/2026-06-26-hybrid-crudlfix-livewire.md` | Laporan implementasi lengkap |
 
 ### Existing Documents
@@ -386,7 +386,7 @@ Fitur export CSV sudah diimplementasikan di `HasCrudlfixActions` tapi belum teru
 
 ### Antigravity (Google DeepMind)
 - Gunakan Livewire components untuk operasi CRUD baru
-- Ikuti pattern di `sisfokol-laravel/docs/livewire-crudlfix-guide.md`
+- Ikuti pattern di `DEV_DOCS/072_panduan_livewire_crudlfix_hybrid_20260626.md`
 - Jangan gunakan complex objects sebagai Livewire property
 
 ### Kiro (kiro.dev)
