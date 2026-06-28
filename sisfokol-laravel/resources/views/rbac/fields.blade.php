@@ -16,7 +16,9 @@
     <!-- Navigation Tabs -->
     <div class="border-b border-slate-800">
         <nav class="flex space-x-8" aria-label="Tabs">
-            <a href="{{ route('rbac.index') }}" class="border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-700 border-b-2 py-4 px-1 text-sm font-medium">Roles & Permissions</a>
+            @if(auth()->user()->isSuperAdmin())
+                <a href="{{ route('rbac.index') }}" class="border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-700 border-b-2 py-4 px-1 text-sm font-medium">Roles & Permissions</a>
+            @endif
             <a href="{{ route('rbac.menus') }}" class="border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-700 border-b-2 py-4 px-1 text-sm font-medium">Menu Visibility</a>
             <a href="{{ route('rbac.fields') }}" class="border-indigo-500 text-indigo-400 border-b-2 py-4 px-1 text-sm font-medium">Field Visibility</a>
             <a href="{{ route('rbac.users') }}" class="border-transparent text-slate-400 hover:text-slate-300 hover:border-slate-700 border-b-2 py-4 px-1 text-sm font-medium">User Roles</a>

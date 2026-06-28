@@ -32,6 +32,13 @@ class MenuRenderer
             if (! $user->isSuperAdmin()) {
                 $menus = $menus->filter(function ($m) use ($user) {
                     if (! $m->permission_required) return true;
+                    
+                    // [2026-06-28 | Antigravity] Exclude global platform-only permissions for tenant users
+                    $globalPermissions = ['tenant.view', 'plugin.activate', 'rbac.manage', 'audit.view'];
+                    if (in_array($m->permission_required, $globalPermissions)) {
+                        return false;
+                    }
+                    
                     return $user->can($m->permission_required);
                 });
             }

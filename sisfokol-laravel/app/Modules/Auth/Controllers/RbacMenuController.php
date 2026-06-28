@@ -18,7 +18,14 @@ class RbacMenuController extends Controller
         Gate::authorize('rbac.manage');
         $menus = Menu::orderBy('urutan')->get();
         $roles = Role::orderBy('name')->get();
-        $overrides = MenuRoleOverride::all()->keyBy(fn($o) => "{$o->menu_id}.{$o->role_id}.{$o->tenant_id}");
+        
+        // [2026-06-28 | Antigravity] Scope overrides by current tenant if not super admin to prevent data leak
+        $query = MenuRoleOverride::query();
+        if (! auth()->user()->isSuperAdmin()) {
+            $query->where('tenant_id', auth()->user()->tenant_id);
+        }
+        $overrides = $query->get()->keyBy(fn($o) => "{$o->menu_id}.{$o->role_id}.{$o->tenant_id}");
+        
         return view('rbac.menus', compact('menus', 'roles', 'overrides'));
     }
 

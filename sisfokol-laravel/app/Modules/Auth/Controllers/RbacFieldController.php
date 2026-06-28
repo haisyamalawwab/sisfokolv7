@@ -18,7 +18,14 @@ class RbacFieldController extends Controller
         Gate::authorize('rbac.manage');
         $fields = Field::orderBy('model')->orderBy('label')->get();
         $roles = Role::orderBy('name')->get();
-        $overrides = FieldRoleOverride::all()->keyBy(fn($o) => "{$o->field_id}.{$o->role_id}.{$o->tenant_id}");
+        
+        // [2026-06-28 | Antigravity] Scope overrides by current tenant if not super admin to prevent data leak
+        $query = FieldRoleOverride::query();
+        if (! auth()->user()->isSuperAdmin()) {
+            $query->where('tenant_id', auth()->user()->tenant_id);
+        }
+        $overrides = $query->get()->keyBy(fn($o) => "{$o->field_id}.{$o->role_id}.{$o->tenant_id}");
+        
         return view('rbac.fields', compact('fields', 'roles', 'overrides'));
     }
 
