@@ -18,6 +18,7 @@ class MapelController extends Controller
             'view'       => 'academic.mapel',
             'route'      => 'academic.mapel',
             'authorize'  => 'mapel',
+            'authType'   => 'permission',
             'search'     => ['kode', 'nama'],
             'with'       => ['jenis'],
             'rules'      => [

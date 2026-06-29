@@ -24,6 +24,39 @@ Livewire Components
 
 ---
 
+## Pola yang Direkomendasikan: `controller` param (single source of truth)
+
+Cara tercepat & terbersih: pass **FQCN controller** ke `crudlfix-page`. Komponen akan
+resolve rules, search, with, auth, dan viewData dari `getCrudlfixConfig()` controller.
+View hanya perlu define **columns** dan **formFields** (layer tampilan).
+
+```blade
+@livewire('crudlfix.crudlfix-page', [
+    'controller' => \App\Modules\Academic\Controllers\MapelController::class,
+    'columns' => ['kode' => 'Kode', 'nama' => 'Nama', 'jenis.nama' => 'Jenis'],
+    'formFields' => [
+        'kode' => ['label' => 'Kode', 'type' => 'text'],
+        'nama' => ['label' => 'Nama', 'type' => 'text'],
+        'mapel_jenis_id' => ['label' => 'Jenis', 'type' => 'select', 'options' => $jenisList->pluck('nama','id')->toArray()],
+    ],
+])
+```
+
+**Keuntungan:**
+- Rules (termasuk `Rule::unique` closure/object) di-resolve dari controller — tidak perlu
+  diduplikasi di view, dan aman untuk closure yang tidak bisa di-serialize Livewire.
+- Auth (`authType` policy/permission) otomatis dari controller config.
+- `viewData` (untuk select options) di-pass controller `index()` → tersedia di view.
+
+**Catatan:** select `options` yang butuh data relasi tetap di-build di view dari variabel
+viewData (e.g. `$jenisList`) yang di-pass controller `index()`.
+
+> Pola lama (pass `model`/`route`/`search`/`rules`/`authorize`/`authType` sebagai flat array
+> dari view) masih didukung untuk backward compatibility, tapi tidak direkomendasikan untuk
+> controller dengan `Rule::unique` atau nested store/update rules.
+
+---
+
 ## Cara Membuat CRUD Baru dengan Livewire
 
 ### Step 1: Buat Controller dengan Crudlfix Trait

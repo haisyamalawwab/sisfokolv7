@@ -17,6 +17,7 @@ class OrangTuaController extends Controller
             'view'       => 'academic.orang-tua',
             'route'      => 'academic.orang-tua',
             'authorize'  => 'orang-tua',
+            'authType'   => 'permission',
             'search'     => ['nama', 'telepon', 'email'],
             'rules'      => [
                 'store' => [

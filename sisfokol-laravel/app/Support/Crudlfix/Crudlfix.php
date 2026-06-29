@@ -177,7 +177,7 @@ trait Crudlfix
 
     // ─── CREATE (form) ──────────────────────────────────────────────
 
-    public function create(): View
+    public function create()
     {
         $cfg = $this->config();
         $this->authorizeCrudlfix('create');
@@ -186,7 +186,14 @@ trait Crudlfix
             'config' => $cfg,
         ]);
 
-        return view("{$cfg->view}.create", $data);
+        $viewName = "{$cfg->view}.create";
+        if (!view()->exists($viewName)) {
+            // [2026-06-29 | AG] Fallback to index if traditional create view is missing
+            return redirect()->route("{$cfg->route}.index", ['action' => 'create']);
+        }
+
+        // return view("{$cfg->view}.create", $data); // [2026-06-29 | AG] commented for fallback support
+        return view($viewName, $data);
     }
 
     // ─── STORE ──────────────────────────────────────────────────────
@@ -215,7 +222,7 @@ trait Crudlfix
 
     // ─── SHOW ───────────────────────────────────────────────────────
 
-    public function show(Request $request): View
+    public function show(Request $request)
     {
         $cfg = $this->config();
         $model = $this->resolveModel($cfg->singularVar());
@@ -230,12 +237,22 @@ trait Crudlfix
             'config' => $cfg,
         ]);
 
-        return view("{$cfg->view}.show", $data);
+        $viewName = "{$cfg->view}.show";
+        if (!view()->exists($viewName)) {
+            // [2026-06-29 | AG] Fallback to index with parameters if traditional show view is missing
+            return redirect()->route("{$cfg->route}.index", [
+                'action' => 'show',
+                'editId' => $model->getKey()
+            ]);
+        }
+
+        // return view("{$cfg->view}.show", $data); // [2026-06-29 | AG] commented for fallback support
+        return view($viewName, $data);
     }
 
     // ─── EDIT (form) ────────────────────────────────────────────────
 
-    public function edit(Request $request): View
+    public function edit(Request $request)
     {
         $cfg = $this->config();
         $model = $this->resolveModel($cfg->singularVar());
@@ -246,7 +263,17 @@ trait Crudlfix
             'config' => $cfg,
         ]);
 
-        return view("{$cfg->view}.edit", $data);
+        $viewName = "{$cfg->view}.edit";
+        if (!view()->exists($viewName)) {
+            // [2026-06-29 | AG] Fallback to index with parameters if traditional edit view is missing
+            return redirect()->route("{$cfg->route}.index", [
+                'action' => 'edit',
+                'editId' => $model->getKey()
+            ]);
+        }
+
+        // return view("{$cfg->view}.edit", $data); // [2026-06-29 | AG] commented for fallback support
+        return view($viewName, $data);
     }
 
     // ─── UPDATE ─────────────────────────────────────────────────────

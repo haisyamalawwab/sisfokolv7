@@ -17,6 +17,7 @@ class TahunAjaranController extends Controller
             'view'       => 'academic.tahun-ajaran',
             'route'      => 'academic.tahun-ajaran',
             'authorize'  => 'tahun-ajaran',
+            'authType'   => 'permission',
             'search'     => ['nama'],
             'rules'      => [
                 'store' => [

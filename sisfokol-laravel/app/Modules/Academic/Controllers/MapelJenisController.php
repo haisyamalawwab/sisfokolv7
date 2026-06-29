@@ -17,6 +17,7 @@ class MapelJenisController extends Controller
             'view'       => 'academic.mapel-jenis',
             'route'      => 'academic.mapel-jenis',
             'authorize'  => 'mapel',
+            'authType'   => 'permission',
             'search'     => ['kode', 'nama'],
             'rules'      => [
                 'store' => [

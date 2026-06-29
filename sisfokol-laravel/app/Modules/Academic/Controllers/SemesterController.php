@@ -18,6 +18,7 @@ class SemesterController extends Controller
             'view'       => 'academic.semester',
             'route'      => 'academic.semester',
             'authorize'  => 'semester',
+            'authType'   => 'permission',
             'search'     => [],
             'with'       => ['tahunAjaran'],
             'rules'      => [
