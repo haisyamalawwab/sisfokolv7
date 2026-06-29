@@ -26,7 +26,7 @@
             </p>
         </div>
 
-        @if($mode === 'index')
+        @if($mode === 'index' && $this->checkCrudlfixAction('create'))
             <button
                 wire:click="setMode('create')"
                 class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition text-sm"
