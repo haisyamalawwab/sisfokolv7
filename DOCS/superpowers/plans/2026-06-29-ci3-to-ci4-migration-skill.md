@@ -4,13 +4,13 @@
 
 **Goal:** Membangun skill ZCode `ci3-to-ci4-migration` (hybrid guide+scripts) yang memandu migrasi CodeIgniter 3 ke CodeIgniter 4 dengan target feature parity.
 
-**Architecture:** Skill berbentuk progressive disclosure — `SKILL.md` ramping sebagai router + decision tree, `references/` per area (dibaca on-demand), `scripts/` Node.js `.mjs` untuk konversi mekanis (TDD, zero-dependency via `node:test`), `assets/` untuk mapping table lengkap + checklist feature parity.
+**Architecture:** Skill berbentuk progressive disclosure — `SKILL.md` ramping sebagai router + decision tree, `references/` per area (dibaca on-demand), `scripts/` Node.js `.mjs` untuk konversi mekanis (TDD, zero-dependency via `node:test`), `assets/` untuk mapping table lengkap + checklist feature parity + code-quality gate.
 
 **Tech Stack:** Markdown (konten skill), Node.js ESM `.mjs` (scripts), `node:test` + `node:assert` (testing, tanpa npm install).
 
-**Spec:** `DOCS/superpowers/specs/2026-06-29-ci3-to-ci4-migration-skill-design.md`
+**Spec:** `DOCS/superpowers/specs/2026-06-29-ci3-to-ci4-migration-skill-design.md` (revisi 2, lih. "Synthesis Notes")
 
-**Konvensi testing untuk task markdown:** markdown reference/SKILL/assets tidak punya unit test; verifikasi = cek file ada + section required ada + commit. Task scripts pakai TDD beneran (test → fail → implement → pass → commit).
+**Konvensi testing:** markdown reference/SKILL/assets tidak punya unit test; verifikasi = cek file ada + section required ada + commit. Task scripts pakai TDD beneran (test → fail → implement → pass → commit).
 
 ---
 
@@ -46,7 +46,7 @@ Trigger: user menyebut konversi/migrasi/upgrade CI3 ke CI4, pindah aplikasi CI3 
 1. **Audit CI3 source**
    - Baca `references/00-audit-checklist.md`
    - Jalankan: `node scripts/audit-ci3.mjs <ci3-application-path>`
-   - Output: laporan pola CI3 + estimasi effort (kecil/sedang/besar)
+   - Output: laporan pola CI3 + impact analysis (dependency antar komponen) + estimasi effort
 
 2. **Cek keberadaan project CI4**
    - Belum ada → setup via `references/01-bootstrap-config.md`
@@ -58,7 +58,7 @@ Trigger: user menyebut konversi/migrasi/upgrade CI3 ke CI4, pindah aplikasi CI3 
 
 5. **Jalankan scripts mekanis** untuk bagian aman (selalu `--dry-run` dulu, review, baru `--apply`)
 
-6. **Feature-parity check** via `assets/feature-parity-checklist.md` + `node scripts/feature-parity-check.mjs <ci3> <ci4>`
+6. **Feature-parity check** via `assets/feature-parity-checklist.md` + `node scripts/feature-parity-check.mjs <ci3> <ci4>`, lalu **code-quality gate** via `assets/output-quality-checklist.md` (sekunder)
 
 7. **Testing per fitur** (input/output/edge-case sama dengan CI3). Claim selesai HANYA setelah feature parity terpenuhi.
 
@@ -68,6 +68,7 @@ Trigger: user menyebut konversi/migrasi/upgrade CI3 ke CI4, pindah aplikasi CI3 
 - Project besar / banyak modul / banyak custom library → **incremental per-modul** (testable, rollback mudah)
 - Ada `MY_Controller`/`MY_Model` kritis → konversi dulu sebelum controller lain (banyak controller bergantung)
 - Hosting constrain PHP version → cek `references/10-php-modernization.md` lebih awal
+- Ada REST API controller → baca `references/03-controllers.md` (section ResourceController)
 
 ## Router reference (baca sebelum handle area tsb)
 
@@ -84,6 +85,7 @@ Trigger: user menyebut konversi/migrasi/upgrade CI3 ke CI4, pindah aplikasi CI3 
 | Hooks/Events | `08-hooks-events-filters.md` | - (judgment) |
 | Third-party | `09-third-party.md` | - (judgment) |
 | PHP modernisasi | `10-php-modernization.md` | - (judgment) |
+| Migration/Seeder/Security/Pagination | `11-migration-seeder-security.md` | - (judgment) |
 
 Untuk lookup cepat saat debug area tertentu, baca `assets/mapping-table.md` (superset semua mapping).
 
@@ -95,10 +97,11 @@ Untuk lookup cepat saat debug area tertentu, baca `assets/mapping-table.md` (sup
   // $x = $this->input->post('x');
   $x = $this->request->getPost('x');
   ```
-- **Mekanis via script, judgment via manual** — JANGAN regex-sendiri bagian berisiko (`extends CI_*`, `$this->load->model/library`, business logic, hooks→events)
+- **Mekanis via script, judgment via manual** — JANGAN regex-sendiri bagian berisiko (`extends CI_*`, `$this->load->model/library`, business logic, hooks→events, migration/seeder, security rewrite)
 - **Script selalu `--dry-run` dulu** — review diff, baru `--apply`. Tidak ada perubahan file tanpa review.
 - **Feature-parity WAJIB** sebelum claim selesai (def of done = feature parity, bukan "jalan tanpa error")
 - **Verifikasi post-konversi per file** — baris 1 `<?php`, ada namespace, extends base yang benar
+- **Code-quality gate sekunder** — setelah feature parity, jalankan `assets/output-quality-checklist.md`. Type declaration boleh jadi debt (jangan campur dengan konversi struktural)
 ```
 
 - [ ] **Step 2: Verifikasi struktur**
@@ -144,6 +147,7 @@ Lookup cepat saat debug area tertentu. Superset dari `references/`. Format: CI3 
 | `$this->input->post_get('x')` | `$this->request->getPostGet('x')` | mekanis |
 | `$this->uri->segment(n)` | `$this->request->uri->getSegment(n)` | mekanis |
 | `$this->output->set_content_type('json')` | `return $this->response->setJSON($d)` | manual |
+| (REST) controller CI3 manual JSON | `extends ResourceController`, `$this->respond()/respondCreated()/failNotFound()` | manual |
 
 ## Model & DB
 
@@ -160,6 +164,7 @@ Lookup cepat saat debug area tertentu. Superset dari `references/`. Format: CI3 
 | `$query->result_array()` | `->getResultArray()` | manual |
 | `$this->db->query($sql)` | `db_connect()->query($sql)` | manual |
 | `$this->db->insert_id()` | `db_connect()->insertID()` / `$model->insertID` | manual |
+| (opsional) return stdClass | `extends Entity` + `$returnType = App\Entities\Foo::class` | manual (opsional) |
 
 ## Routing
 
@@ -188,13 +193,15 @@ Lookup cepat saat debug area tertentu. Superset dari `references/`. Format: CI3 
 | `$this->form_validation->set_rules('f','L','required')` | `service('validation')->setRules(['f'=>'required'],['f'=>'L'])` | manual |
 | `if ($this->form_validation->run()==FALSE)` | `if (! $this->validate($rules))` | manual |
 
-## Email / Upload / Cache
+## Email / Upload / Cache / Logging
 
 | CI3 | CI4 | Mekanis? |
 |-----|-----|----------|
 | `$this->load->library('email'); $this->email->send()` | `$e = service('email'); $e->send()` / `email()->send()` | manual |
 | `$this->load->library('upload'); $this->upload->do_upload('f')` | `$f=$this->request->getFile('f'); $f->move(WRITEPATH.'uploads')` | manual |
 | `$this->load->driver('cache'); $this->cache->save('k',$v)` | `cache()->save('k',$v)` | manual |
+| `log_message('error','...')` | `log_message('error','...')` (sama, global) | - |
+| `$this->CI->...` di library | DI / `service()` / `Config\Services` | manual (stuck point) |
 
 ## Library / Helper
 
@@ -221,6 +228,7 @@ Lookup cepat saat debug area tertentu. Superset dari `references/`. Format: CI3 
 | `config/config.php` (array) | `app/Config/App.php` (class) | manual |
 | `config/database.php` (array) | `app/Config/Database.php` + `.env` | manual |
 | `config/autoload.php` `$autoload` | service registration / Filters | manual |
+| `$this->config->item('k')` | `config('App')->k` / `config('App')` | manual |
 
 ## Hooks → Events/Filters
 
@@ -228,6 +236,32 @@ Lookup cepat saat debug area tertentu. Superset dari `references/`. Format: CI3 
 |-----|-----|----------|
 | `$hook['pre_controller']=...` (config/hooks.php) | `Events::on('pre_controller',...)` + `Config/Filters.php` | manual |
 | `$hook['pre_system']` | `Events::on('pre_system',...)` | manual |
+
+## Migration & Seeder
+
+| CI3 | CI4 | Mekanis? |
+|-----|-----|----------|
+| `$this->migration->current()/latest()` | `php spark migrate` / `php spark migrate:rollback` | manual |
+| `application/migrations/001_xxx.php` | `app/Database/Migrations/001_xxx.php` | manual (move + rewrite) |
+| `$this->dbforge->create_table('t')` | `$this->forge->createTable('t')` | manual |
+| `$this->dbforge->add_column()/drop_table()` | `$this->forge->addColumn()/dropTable()` | manual |
+| (seeder) manual | `php spark db:seed` + `app/Database/Seeds/` | manual |
+
+## Security
+
+| CI3 | CI4 | Mekanis? |
+|-----|-----|----------|
+| `$this->security->xss_clean($v)` | `esc($v)` / `esc($v,'attr')` (context: html/js/css/url/attr) | manual |
+| `$this->input->post('f', TRUE)` (XSS filter) | `$this->request->getPost('f')` + `esc()` saat output | manual |
+| CSRF (config-based) | Filter `csrf` (default global) + `csrf_token()/csrf_hash()/csrf_field()` | manual |
+| `$this->security->csrf_verify()` | (otomatis via csrf filter) | manual |
+
+## Pagination
+
+| CI3 | CI4 | Mekanis? |
+|-----|-----|----------|
+| `$this->pagination->initialize($config)` | `$model->paginate(10)` + `app/Config/Pager.php` | manual |
+| `$this->pagination->create_links()` | `$pager->links()` / `simpleLinks()` | manual |
 ```
 
 - [ ] **Step 2: Verifikasi**
@@ -239,24 +273,24 @@ Expected: `OK`
 
 ```bash
 git add .agents/skills/ci3-to-ci4-migration/assets/mapping-table.md
-git commit -m "feat(ci3-to-ci4-skill): add mapping-table asset (superset CI3->CI4)"
+git commit -m "feat(ci3-to-ci4-skill): add mapping-table asset (superset CI3->CI4, +migration/security/pagination)"
 ```
 
 ---
 
-## Task 3: references 00, 01, 02 (audit, bootstrap, routing)
+## Task 3: references 00, 01, 02 (audit+impact, bootstrap+spark, routing)
 
 **Files:**
 - Create: `.agents/skills/ci3-to-ci4-migration/references/00-audit-checklist.md`
 - Create: `.agents/skills/ci3-to-ci4-migration/references/01-bootstrap-config.md`
 - Create: `.agents/skills/ci3-to-ci4-migration/references/02-routing.md`
 
-- [ ] **Step 1: Tulis 00-audit-checklist.md**
+- [ ] **Step 1: Tulis 00-audit-checklist.md (dengan impact analysis)**
 
 ```markdown
 # 00 — Audit Codebase CI3
 
-Scan codebase CI3 sebelum mulai konversi. Tujuan: inventaris + estimasi effort + identifikasi stuck point.
+Scan codebase CI3 sebelum mulai konversi. Tujuan: inventaris + impact analysis + estimasi effort + identifikasi stuck point.
 
 ## Checklist manual
 
@@ -273,22 +307,35 @@ Scan codebase CI3 sebelum mulai konversi. Tujuan: inventaris + estimasi effort +
 ## Scan otomatis
 
 ```bash
-node scripts/audit-ci3.mjs <ci3-application-path>
+node scripts/audit-ci3.mjs <ci3-application-dir>
 ```
 
-Output: JSON + ringkasan human — list file per type, pola CI3 terdeteksi (`extends CI_Controller`, `load->model`, `get_instance()`, dll), custom `MY_*`, third-party, dan estimasi effort:
+Output: JSON + ringkasan human — list file per type, ~17 pola CI3 terdeteksi (`extends CI_Controller`, `load->model`, `get_instance()`, `migration->`, `dbforge->`, `security->`, dll), custom `MY_*`, third-party, dan estimasi effort:
 - **kecil**: <10 controller, sedikit custom library
 - **sedang**: 10-25 controller
 - **besar**: >25 controller / banyak custom library / banyak `&get_instance()`
+
+## Impact analysis (sebelum konversi)
+
+Sebelum konversi, petakan dependency antar komponen agar tahu urutan aman:
+
+- [ ] **Controller → library/model**: controller mana yang pakai library X / model Y? (konversi dependency dulu)
+- [ ] **Model → dipakai banyak controller**: model mana yang paling banyak dipakai? (konversi dulu, tapi pastikan `$allowedFields` benar agar tidak break banyak controller)
+- [ ] **Library → `&get_instance()`**: library mana yang pakai super object? (flag sebagai stuck point, butuh rewrite DI — lihat `06-libraries-helpers.md`)
+- [ ] **Controller base (`MY_Controller`)**: controller mana yang `extends MY_Controller`? (konversi MY_Controller **sebelum** controller lain)
+- [ ] **Route → custom controller**: route yang hardcode nama controller/method — pastikan nama class tidak berubah saat konversi
+
+Output impact analysis: daftar urutan konversi yang aman (dependency-aware).
 
 ## Stuck point yang wajib di-flag
 
 - Library/helper pakai `$this->CI = &get_instance()` → butuh rewrite ke DI/`service()` (lihat `06-libraries-helpers.md`)
 - `MY_Controller`/`MY_Model` di `application/core/` → konversi dulu sebelum controller lain
 - Third-party yang tidak punya padanan CI4 → flag ke user (out of scope rewrite)
+- Migration pakai `dbforge` → lihat `11-migration-seeder-security.md`
 ```
 
-- [ ] **Step 2: Tulis 01-bootstrap-config.md**
+- [ ] **Step 2: Tulis 01-bootstrap-config.md (dengan Spark CLI)**
 
 ```markdown
 # 01 — Bootstrap & Config CI4
@@ -339,6 +386,27 @@ database.default.password = ''
 - `$autoload['libraries']` (session, database) → otomatis tersedia di CI4 via service/factory
 - `$autoload['helper']` → set di `app/Config/Autoload.php` `$helpers` atau di `BaseController::$helpers`
 - `$autoload['packages']` (third_party) → composer atau `app/ThirdParty/`
+
+## Spark CLI (setara artisan Laravel)
+
+CI4 punya CLI `spark` untuk scaffolding & DB:
+
+```bash
+php spark serve                      # jalankan dev server
+php spark make:controller Foo        # scaffold controller
+php spark make:model FooModel
+php spark make:migration AddXTable
+php spark make:seeder FooSeeder
+php spark make:filter AuthFilter
+php spark make:command FooCommand
+php spark routes                     # list route terdaftar
+php spark migrate                    # jalankan DB migration
+php spark migrate:rollback
+php spark migrate:status
+php spark db:seed FooSeeder
+```
+
+Gunakan `spark` untuk scaffolding saat konversi (lebih cepat + konsisten dari pada buat manual).
 
 ## Verifikasi
 
@@ -429,19 +497,19 @@ Expected: `00-audit-checklist.md  01-bootstrap-config.md  02-routing.md`
 git add .agents/skills/ci3-to-ci4-migration/references/00-audit-checklist.md \
         .agents/skills/ci3-to-ci4-migration/references/01-bootstrap-config.md \
         .agents/skills/ci3-to-ci4-migration/references/02-routing.md
-git commit -m "feat(ci3-to-ci4-skill): add references 00-02 (audit, bootstrap, routing)"
+git commit -m "feat(ci3-to-ci4-skill): add references 00-02 (audit+impact, bootstrap+spark, routing)"
 ```
 
 ---
 
-## Task 4: references 03, 04, 05 (controllers, models-db, views)
+## Task 4: references 03, 04, 05 (controllers+REST, models-db+Entity, views)
 
 **Files:**
 - Create: `.agents/skills/ci3-to-ci4-migration/references/03-controllers.md`
 - Create: `.agents/skills/ci3-to-ci4-migration/references/04-models-db.md`
 - Create: `.agents/skills/ci3-to-ci4-migration/references/05-views.md`
 
-- [ ] **Step 1: Tulis 03-controllers.md**
+- [ ] **Step 1: Tulis 03-controllers.md (dengan ResourceController)**
 
 ```markdown
 # 03 — Controllers
@@ -495,17 +563,46 @@ class Auth extends BaseController {
 - `$this->output->set_content_type('json')->set_output($d)` → `return $this->response->setJSON($d)`.
 - Constructor CI3 `public function __construct() { parent::__construct(); ... }` → CI4 pakai `initController($request, $logger, $session)` atau constructor biasa tanpa `parent::__construct()` (BaseController tidak butuh).
 
+## ResourceController (untuk REST API)
+
+Jika controller CI3 menyajikan REST API (manual JSON), di CI4 pakai `ResourceController`:
+
+```php
+<?php
+namespace App\Controllers;
+use CodeIgniter\RESTful\ResourceController;
+class Users extends ResourceController {
+    public function index() {
+        $model = new \App\Models\UserModel();
+        return $this->respond($model->findAll());        // 200 JSON
+    }
+    public function show($id = null) {
+        $user = (new \App\Models\UserModel())->find($id);
+        if (! $user) return $this->failNotFound('User tidak ditemukan');
+        return $this->respond($user);
+    }
+    public function create() {
+        // ... insert
+        return $this->respondCreated($user);             // 201
+    }
+    public function update($id = null) { /* ... */ return $this->respond($user); }
+    public function delete($id = null) { /* ... */ return $this->respondDeleted(); }
+}
+```
+
+Response helper: `$this->respond()`, `respondCreated()`, `respondDeleted()`, `failNotFound()`, `failValidationErrors()`, `failUnauthorized()`. Format response (JSON/XML) di `app/Config/Format.php`. Route: `$routes->resource('users')` auto-map REST verbs.
+
 ## Urutan konversi per file
 
 1. Tambah `namespace App\Controllers;` + `use App\Models\...;` di atas
-2. Ganti `extends CI_Controller` → `extends BaseController`
+2. Ganti `extends CI_Controller` → `extends BaseController` (atau `ResourceController` untuk REST)
 3. Jalankan `convert-mechanical.mjs --dry-run` → review → `--apply`
 4. Tambah `return` di depan `view(...)` / `setJSON(...)` (manual)
 5. Hapus `$this->load->model(...)` ganti dengan `new Model()` (manual)
-6. Verifikasi: baris 1 `<?php`, ada namespace, extends BaseController
+6. Verifikasi: baris 1 `<?php`, ada namespace, extends base yang benar
 ```
 
-- [ ] **Step 2: Tulis 04-models-db.md**
+- [ ] **Step 2: Tulis 04-models-db.md (dengan Entity)**
 
 ```markdown
 # 04 — Models & Database
@@ -565,6 +662,27 @@ class UserModel extends Model {
 - Transaction: `$this->db->trans_start()/complete()` → `db_connect()->transBegin()/transCommit()/transRollback()`.
 - `$this->db->last_query()` (debug) → `db_connect()->getLastQuery()`.
 
+## Entity class (opsional, untuk model return object rich)
+
+Untuk model yang return object dengan logic getter/setter/casting, pakai Entity:
+
+```php
+// app/Entities/User.php
+namespace App\Entities;
+use CodeIgniter\Entity\Entity;
+class User extends Entity {
+    protected $casts = ['is_active' => 'boolean', 'meta' => 'json'];
+    public function setPassword(string $pass): static {   // auto-hash saat set
+        $this->attributes['password'] = password_hash($pass, PASSWORD_DEFAULT);
+        return $this;
+    }
+}
+// app/Models/UserModel.php
+protected $returnType = \App\Entities\User::class;   // find() return User entity
+```
+
+Type casting: `boolean`, `int`, `float`, `json`, `array`, `datetime`, `timestamp`. Date/JSON/encrypted casting tersedia. **Opsional** — jangan campur dengan konversi struktural (buat commit terpisah, lihat `10-php-modernization.md`).
+
 ## Urutan konversi per file
 
 1. `rename-files.mjs` untuk pindah + rename `user_model.php` → `UserModel.php`
@@ -572,7 +690,8 @@ class UserModel extends Model {
 3. Ganti `extends CI_Model` → `extends Model`, rename class `User_model` → `UserModel`
 4. Set `$table`, `$primaryKey`, `$allowedFields`
 5. Konversi query manual (Active Record → Query Builder/Model methods)
-6. Verifikasi: baris 1 `<?php`, ada namespace, ada 3 property wajib
+6. (Opsional, terpisah) set `$returnType` + buat Entity
+7. Verifikasi: baris 1 `<?php`, ada namespace, ada 3 property wajib
 ```
 
 - [ ] **Step 3: Tulis 05-views.md**
@@ -638,12 +757,12 @@ Expected: 6 file (00-05).
 git add .agents/skills/ci3-to-ci4-migration/references/03-controllers.md \
         .agents/skills/ci3-to-ci4-migration/references/04-models-db.md \
         .agents/skills/ci3-to-ci4-migration/references/05-views.md
-git commit -m "feat(ci3-to-ci4-skill): add references 03-05 (controllers, models-db, views)"
+git commit -m "feat(ci3-to-ci4-skill): add references 03-05 (controllers+REST, models-db+Entity, views)"
 ```
 
 ---
 
-## Task 5: references 06, 07 (libraries-helpers, services)
+## Task 5: references 06, 07 (libraries-helpers, services+logging)
 
 **Files:**
 - Create: `.agents/skills/ci3-to-ci4-migration/references/06-libraries-helpers.md`
@@ -759,10 +878,10 @@ function format_rupiah($n) { return 'Rp ' . number_format($n, 0, ',', '.'); }
 Helper paling mudah — cukup pindah file + `load->helper` → `helper()` via script.
 ```
 
-- [ ] **Step 2: Tulis 07-services.md**
+- [ ] **Step 2: Tulis 07-services.md (dengan Logging)**
 
 ```markdown
-# 07 — Services (Session, Form Validation, Email, Upload, Cache)
+# 07 — Services (Session, Form Validation, Email, Upload, Cache, Logging)
 
 ## Session
 
@@ -859,6 +978,16 @@ if (! $file->isValid()) {
 | `$this->cache->save('k', $v, 60)` | `cache()->save('k', $v, 60)` | manual |
 | `$this->cache->get('k')` | `cache()->get('k')` | manual |
 | `$this->cache->delete('k')` | `cache()->delete('k')` | manual |
+
+## Logging
+
+| CI3 | CI4 | Mekanis? |
+|-----|-----|----------|
+| `log_message('error', '...')` | `log_message('error', '...')` (sama, fungsi global) | - (tidak perlu ubah) |
+| `log_message('debug'/'info'/'error', $msg)` | sama, level: `debug/info/error/warning/emergency` | - |
+| (butuh logger instance) | `$this->logger->debug('...')` di controller, atau `service('logger')` di library | manual |
+
+Catatan: `log_message()` tidak berubah di CI4 — langsung jalan. Untuk logger instance (mis. di library yang butuh DI), pakai `service('logger')`. Config level/handler di `app/Config/Logger.php`.
 ```
 
 - [ ] **Step 3: Verifikasi**
@@ -871,7 +1000,7 @@ Expected: 8 file (00-07).
 ```bash
 git add .agents/skills/ci3-to-ci4-migration/references/06-libraries-helpers.md \
         .agents/skills/ci3-to-ci4-migration/references/07-services.md
-git commit -m "feat(ci3-to-ci4-skill): add references 06-07 (libraries-helpers, services)"
+git commit -m "feat(ci3-to-ci4-skill): add references 06-07 (libraries-helpers, services+logging)"
 ```
 
 ---
@@ -1050,6 +1179,7 @@ class AuthLib {
 
 - Jangan modernisasi + konversi CI3→CI4 sekaligus di satu commit — campur bingung saat review. Pisahkan commit.
 - Typed return pada method yang bisa return `null` → pakai `?Type` (nullable).
+- Type declaration boleh dicatat sebagai **debt** di `output-quality-checklist.md` — bukan blocker def of done (feature parity yang primer).
 ```
 
 - [ ] **Step 4: Verifikasi**
@@ -1068,7 +1198,166 @@ git commit -m "feat(ci3-to-ci4-skill): add references 08-10 (hooks, third-party,
 
 ---
 
-## Task 7: assets/feature-parity-checklist.md
+## Task 7: references 11 (migration-seeder-security) [BARU]
+
+**Files:**
+- Create: `.agents/skills/ci3-to-ci4-migration/references/11-migration-seeder-security.md`
+
+- [ ] **Step 1: Tulis reference 11**
+
+```markdown
+# 11 — Migration, Seeder, Security, Pagination
+
+Reference gabungan untuk area yang tidak masuk reference lain. Semua manual (judgment) — tidak ada script mekanis.
+
+## Migration (CI3 → CI4)
+
+CI3 migration pakai `$this->migration` + `$this->dbforge`, file di `application/migrations/`:
+
+```php
+// application/migrations/001_create_users.php
+class Migration_Create_users extends CI_Migration {
+    public function up() {
+        $this->dbforge->add_field(array(
+            'id' => array('type' => 'INT', 'constraint' => 5, 'auto_increment' => TRUE),
+            'username' => array('type' => 'VARCHAR', 'constraint' => 100),
+        ));
+        $this->dbforge->add_key('id', TRUE);
+        $this->dbforge->create_table('users');
+    }
+    public function down() {
+        $this->dbforge->drop_table('users');
+    }
+}
+```
+
+CI4 migration pakai `$this->forge` + `spark`, file di `app/Database/Migrations/`:
+
+```php
+<?php
+namespace App\Database\Migrations;
+use CodeIgniter\Database\Migration;
+class CreateUsers extends Migration {
+    public function up() {
+        $this->forge->addField([
+            'id' => ['type' => 'INT', 'constraint' => 5, 'auto_increment' => true],
+            'username' => ['type' => 'VARCHAR', 'constraint' => 100],
+        ]);
+        $this->forge->addKey('id', true);
+        $this->forge->createTable('users');
+    }
+    public function down() {
+        $this->forge->dropTable('users');
+    }
+}
+```
+
+| CI3 | CI4 | Mekanis? |
+|-----|-----|----------|
+| `extends CI_Migration` | `extends CodeIgniter\Database\Migration` + `namespace App\Database\Migrations` | manual |
+| `$this->dbforge->add_field($arr)` | `$this->forge->addField($arr)` | manual (rename) |
+| `$this->dbforge->add_key('id', TRUE)` | `$this->forge->addKey('id', true)` | manual |
+| `$this->dbforge->create_table('t')` | `$this->forge->createTable('t')` | manual |
+| `$this->dbforge->add_column('t',$c)` | `$this->forge->addColumn('t',$c)` | manual |
+| `$this->dbforge->drop_table('t')` | `$this->forge->dropTable('t')` | manual |
+| `$this->dbforge->modify_column(...)` | `$this->forge->modifyColumn(...)` | manual |
+| `$this->migration->current()/latest()` | `php spark migrate` | manual (CLI, bukan code) |
+| `$this->migration->version($v)` | `php spark migrate:rollback` / `php spark migrate:status` | manual |
+| (foreign key) `$this->dbforge->add_field('CONSTRAINT...')` | `$this->forge->addForeignKey('col','tbl','col')` | manual |
+
+Jalankan: `php spark migrate` (lihat `01-bootstrap-config.md` Spark CLI section).
+
+## Seeder
+
+CI3 seeder terbatas (manual insert). CI4 punya seeder native:
+
+```php
+<?php
+namespace App\Database\Seeds;
+use CodeIgniter\Database\Seeder;
+class UserSeeder extends Seeder {
+    public function run() {
+        $this->db->table('users')->insert(['username' => 'admin', 'password' => password_hash('secret', PASSWORD_DEFAULT)]);
+        $this->call('OtherSeeder');   // panggil seeder lain
+    }
+}
+```
+
+Jalankan: `php spark db:seed UserSeeder`. Scaffold: `php spark make:seeder UserSeeder`.
+
+## Security
+
+### XSS
+| CI3 | CI4 | Mekanis? |
+|-----|-----|----------|
+| `$this->security->xss_clean($v)` | `esc($v)` (default html) / `esc($v,'attr')` / `'js'/'css'/'url'` | manual |
+| `$this->input->post('f', TRUE)` (XSS filter saat input) | `$this->request->getPost('f')` + `esc()` **saat output** (output-escaping, bukan input-filtering) | manual |
+
+**Penting:** CI4 filosofinya **output-escaping** (`esc()` di view), bukan input-filtering. Jangan filter di input lalu simpan — simpan raw, escape saat tampil. `esc()` context-aware (`html`/`js`/`css`/`url`/`attr`).
+
+### CSRF
+| CI3 | CI4 | Mekanis? |
+|-----|-----|----------|
+| CSRF via `config/config.php` (`csrf_protection=TRUE`) | Filter `csrf` — default global di `app/Config/Filters.php` `$globals['before']` | manual (config) |
+| `$this->security->csrf_verify()` | (otomatis via filter) | - |
+| (form) manual hidden token | `<?= csrf_field() ?>` di form (auto hidden input) | manual |
+
+Helper: `csrf_token()` (nama), `csrf_hash()` (value), `csrf_field()` (HTML input), `csrf_meta()` (meta tag).
+
+### Secure headers
+CI4: aktifkan `secureheaders` filter di `app/Config/Filters.php`. Honeypot: `honeypot` filter. CORS: buat custom CORS filter atau pakai `cors` filter bawaan.
+
+## Pagination
+
+CI3:
+```php
+$this->load->library('pagination');
+$config['base_url'] = site_url('users');
+$config['total_rows'] = $this->user_model->count_all();
+$config['per_page'] = 10;
+$this->pagination->initialize($config);
+$links = $this->pagination->create_links();
+$users = $this->user_model->get_users($config['per_page'], $this->uri->segment(3));
+```
+
+CI4 (terintegrasi Model):
+```php
+// controller
+$model = new \App\Models\UserModel();
+$users = $model->paginate(10);
+$pager = $model->pager;
+// di view: <?= $pager->links() ?>
+```
+
+| CI3 | CI4 | Mekanis? |
+|-----|-----|----------|
+| `$this->pagination->initialize($config)` | `$model->paginate(10)` | manual |
+| `$this->pagination->create_links()` | `$model->pager->links()` / `simpleLinks()` | manual |
+| `$this->model->count_all()` (total) | `$model->countAll()` / `$model->countAllResults(false)` | manual |
+| (offset manual via uri->segment) | otomatis via `?page=N` (query string) | manual |
+
+Config template: `app/Config/Pager.php` `$templates`. Custom template view bisa override.
+
+## Audit hook
+
+Pola area ini dideteksi `audit-ci3.mjs`: `migration->`, `dbforge->`, `pagination->`, `security->`, `config->item`, `parser->`. Saat audit menemukan pola-pola ini, baca reference 11.
+```
+
+- [ ] **Step 2: Verifikasi**
+
+Run: `ls .agents/skills/ci3-to-ci4-migration/references/ | wc -l`
+Expected: `12` (file 00-11).
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add .agents/skills/ci3-to-ci4-migration/references/11-migration-seeder-security.md
+git commit -m "feat(ci3-to-ci4-skill): add reference 11 (migration-seeder-security) [from synthesis]"
+```
+
+---
+
+## Task 8: assets/feature-parity-checklist.md
 
 **Files:**
 - Create: `.agents/skills/ci3-to-ci4-migration/assets/feature-parity-checklist.md`
@@ -1107,14 +1396,16 @@ Template per-fitur. Def of done = feature parity (input/output/edge-case sama). 
 - [ ] Upload behavior sama (validation, storage path)
 - [ ] Email sending behavior sama
 - [ ] Database query result shape sama (row/result/array)
-- [ ] Pagination behavior sama
-- [ ] CSRF behavior sama
+- [ ] Pagination behavior sama (jumlah per page, links, offset)
+- [ ] CSRF behavior sama (token, form)
+- [ ] XSS protection behavior sama (esc di output)
 - [ ] Custom library behavior sama (terutama yg pakai &get_instance())
+- [ ] DB migration & seeder jalan (`php spark migrate` tanpa error, seed data benar)
 - [ ] Smoke test: akses semua route utama, tidak ada 500/fatal
 
 ## Def of done
 
-Migrasi selesai HANYA jika semua checklist di atas tercentang. Bukan "jalan tanpa error", tapi **feature parity**.
+Migrasi selesai HANYA jika semua checklist di atas tercentang. Bukan "jalan tanpa error", tapi **feature parity**. Setelah ini, jalankan code-quality gate (`output-quality-checklist.md`) — sekunder.
 ```
 
 - [ ] **Step 2: Verifikasi**
@@ -1131,7 +1422,59 @@ git commit -m "feat(ci3-to-ci4-skill): add feature-parity checklist asset"
 
 ---
 
-## Task 8: scripts/convert-mechanical.mjs (TDD)
+## Task 9: assets/output-quality-checklist.md [BARU — dari sintesis]
+
+**Files:**
+- Create: `.agents/skills/ci3-to-ci4-migration/assets/output-quality-checklist.md`
+
+- [ ] **Step 1: Tulis code-quality gate checklist**
+
+```markdown
+# Output Quality Checklist (Code-Quality Gate, Sekunder)
+
+Dijalankan SETELAH feature parity tercapai. Ini gate **sekunder** — def of done utama tetap feature parity (`feature-parity-checklist.md`). Tujuan: memastikan kode CI4 hasil konversi sehat & mudah dipelihara.
+
+## Per file (cek setiap file hasil konversi)
+
+- [ ] Tidak ada syntax error (`php -l <file>`)
+- [ ] Namespace benar sesuai PSR-4 (`App\Controllers\...`, `App\Models\...`, dll)
+- [ ] Type declaration lengkap — param + return type. **Boleh ditunda sebagai debt** (catat di kolom Catatan), jangan campur dengan konversi struktural
+- [ ] PHPDoc untuk method publik (izin deskripsi, param, return)
+- [ ] Tidak pakai deprecated API CI4 (cek changelog CI4)
+- [ ] Pakai fitur bawaan CI4 semaksimal mungkin (`service()`, `Model`, `Filter`, `Entity` bila perlu)
+- [ ] Business logic tidak berubah vs CI3 (verifikasi via feature-parity checklist)
+- [ ] Mengikuti PSR-12 (indentasi, brace position, dll)
+- [ ] baris 1 `<?php`, extends base yang benar (`BaseController`/`Model`/`ResourceController`)
+
+## Debt tracking
+
+Type declaration & modernisasi PHP yang ditunda (lihat `references/10-php-modernization.md`) catat di sini, **bukan blocker** def of done:
+
+| File | Debt | Catatan |
+|------|------|---------|
+| `app/Controllers/Auth.php` | return type belum | ditunda, jangan campur konversi struktural |
+| ... | ... | ... |
+
+## Def of done (quality gate)
+
+Feature parity = **primer** (WAJIB). Code quality gate = **sekunder** (recommended, debt boleh). Claim selesai setelah feature parity; quality gate idealnya selesai tapi debt dicatat.
+```
+
+- [ ] **Step 2: Verifikasi**
+
+Run: `test -f .agents/skills/ci3-to-ci4-migration/assets/output-quality-checklist.md && echo OK`
+Expected: `OK`
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add .agents/skills/ci3-to-ci4-migration/assets/output-quality-checklist.md
+git commit -m "feat(ci3-to-ci4-skill): add output-quality-checklist asset (code-quality gate, sekunder) [from synthesis]"
+```
+
+---
+
+## Task 10: scripts/convert-mechanical.mjs (TDD)
 
 **Files:**
 - Create: `.agents/skills/ci3-to-ci4-migration/scripts/convert-mechanical.mjs`
@@ -1303,7 +1646,7 @@ git commit -m "feat(ci3-to-ci4-skill): add convert-mechanical.mjs with tests (TD
 
 ---
 
-## Task 9: scripts/rename-files.mjs (TDD)
+## Task 11: scripts/rename-files.mjs (TDD)
 
 **Files:**
 - Create: `.agents/skills/ci3-to-ci4-migration/scripts/rename-files.mjs`
@@ -1365,8 +1708,8 @@ Buat `.agents/skills/ci3-to-ci4-migration/scripts/rename-files.mjs`:
 // models/user_model.php -> app/Models/UserModel.php (snake -> PascalCase)
 // Default --dry-run. --apply untuk tulis.
 
-import { readdirSync, statSync, mkdirSync, renameSync, existsSync } from 'node:fs';
-import { join, extname, basename } from 'node:path';
+import { readdirSync, statSync, mkdirSync, renameSync } from 'node:fs';
+import { join, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export function toPascalCase(name) {
@@ -1443,13 +1786,13 @@ git commit -m "feat(ci3-to-ci4-skill): add rename-files.mjs with tests (TDD)"
 
 ---
 
-## Task 10: scripts/audit-ci3.mjs (TDD)
+## Task 12: scripts/audit-ci3.mjs (TDD, ~17 pola — ENRICHED)
 
 **Files:**
 - Create: `.agents/skills/ci3-to-ci4-migration/scripts/audit-ci3.mjs`
 - Create: `.agents/skills/ci3-to-ci4-migration/scripts/__tests__/audit-ci3.test.mjs`
 
-- [ ] **Step 1: Tulis test**
+- [ ] **Step 1: Tulis test (dengan pola tambahan dari sintesis)**
 
 Buat `.agents/skills/ci3-to-ci4-migration/scripts/__tests__/audit-ci3.test.mjs`:
 
@@ -1494,8 +1837,39 @@ test('detect db-> Active Record', () => {
 test('detect load->model', () => {
   assert.ok(detectPatterns(`$this->load->model('user_model');`).includes('load->model'));
 });
+test('detect load->library', () => {
+  assert.ok(detectPatterns(`$this->load->library('session');`).includes('load->library'));
+});
 test('detect form_validation', () => {
   assert.ok(detectPatterns(`$this->form_validation->set_rules('f','L','required');`).includes('form_validation'));
+});
+test('detect upload->do_upload', () => {
+  assert.ok(detectPatterns(`$this->upload->do_upload('f');`).includes('upload->do_upload'));
+});
+test('detect input->post', () => {
+  assert.ok(detectPatterns(`$x = $this->input->post('x');`).includes('input->post'));
+});
+test('detect session->set_userdata', () => {
+  assert.ok(detectPatterns(`$this->session->set_userdata('k', $v);`).includes('session->set_userdata'));
+});
+// --- pola tambahan dari sintesis ---
+test('detect migration->', () => {
+  assert.ok(detectPatterns(`$this->migration->latest();`).includes('migration->'));
+});
+test('detect dbforge->', () => {
+  assert.ok(detectPatterns(`$this->dbforge->create_table('t');`).includes('dbforge->'));
+});
+test('detect pagination->', () => {
+  assert.ok(detectPatterns(`$this->pagination->create_links();`).includes('pagination->'));
+});
+test('detect security->', () => {
+  assert.ok(detectPatterns(`$this->security->xss_clean($v);`).includes('security->'));
+});
+test('detect config->item', () => {
+  assert.ok(detectPatterns(`$v = $this->config->item('k');`).includes('config->item'));
+});
+test('detect parser->', () => {
+  assert.ok(detectPatterns(`$this->parser->parse('t', $d);`).includes('parser->'));
 });
 test('no false positive on clean CI4 code', () => {
   const ci4 = `namespace App\\Controllers;\\nclass Auth extends BaseController {}`;
@@ -1508,13 +1882,13 @@ test('no false positive on clean CI4 code', () => {
 Run: `cd .agents/skills/ci3-to-ci4-migration && node --test scripts/__tests__/audit-ci3.test.mjs`
 Expected: FAIL — `Cannot find module '../audit-ci3.mjs'`.
 
-- [ ] **Step 3: Implement audit-ci3.mjs**
+- [ ] **Step 3: Implement audit-ci3.mjs (~17 pola)**
 
 Buat `.agents/skills/ci3-to-ci4-migration/scripts/audit-ci3.mjs`:
 
 ```js
 #!/usr/bin/env node
-// audit-ci3.mjs — scan codebase CI3 (application/), laporkan pola + estimasi effort.
+// audit-ci3.mjs — scan codebase CI3 (application/), laporkan ~17 pola + estimasi effort.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, extname } from 'node:path';
@@ -1546,6 +1920,13 @@ export function detectPatterns(src) {
     { name: 'get_instance',          re: /get_instance\(\)/ },
     { name: 'db-> (Active Record)',  re: /\$this->db->/ },
     { name: 'upload->do_upload',     re: /\$this->upload->do_upload\(/ },
+    // --- pola tambahan dari sintesis ---
+    { name: 'migration->',           re: /\$this->migration->/ },
+    { name: 'dbforge->',             re: /\$this->dbforge->/ },
+    { name: 'pagination->',          re: /\$this->pagination->/ },
+    { name: 'security->',            re: /\$this->security->/ },
+    { name: 'config->item',          re: /\$this->config->item\(/ },
+    { name: 'parser->',              re: /\$this->parser->/ },
   ];
   return checks.filter(c => c.re.test(src)).map(c => c.name);
 }
@@ -1601,19 +1982,21 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) main();
 - [ ] **Step 4: Run test — verify PASS**
 
 Run: `cd .agents/skills/ci3-to-ci4-migration && node --test scripts/__tests__/audit-ci3.test.mjs`
-Expected: PASS — 14 test lulus.
+Expected: PASS — 23 test lulus (7 classify + 16 detect incl. 6 baru + 0 false-positive... hitung: 7 classify + 17 detect patterns + 1 false positive = 25? recheck: classify tests = 7 (controller,model,helper,config,hook,third_party,view). detect tests = 17 (extends CI_Controller, CI_Model, get_instance, db->, load->model, load->library, form_validation, upload->do_upload, input->post, session->set_userdata, migration->, dbforge->, pagination->, security->, config->item, parser-> = 16... + no false positive = 17). Total = 7 + 16 + 1 = 24. Lihat output aktual untuk count pasti.)
+
+> Catatan: jumlah test pasti diverifikasi dari output `node --test`. Yang penting: semua PASS, termasuk 6 pola baru (migration->, dbforge->, pagination->, security->, config->item, parser->).
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add .agents/skills/ci3-to-ci4-migration/scripts/audit-ci3.mjs \
         .agents/skills/ci3-to-ci4-migration/scripts/__tests__/audit-ci3.test.mjs
-git commit -m "feat(ci3-to-ci4-skill): add audit-ci3.mjs with tests (TDD)"
+git commit -m "feat(ci3-to-ci4-skill): add audit-ci3.mjs with tests (TDD, ~17 patterns) [enriched from synthesis]"
 ```
 
 ---
 
-## Task 11: scripts/feature-parity-check.mjs (TDD)
+## Task 13: scripts/feature-parity-check.mjs (TDD)
 
 **Files:**
 - Create: `.agents/skills/ci3-to-ci4-migration/scripts/feature-parity-check.mjs`
@@ -1644,6 +2027,11 @@ test('parse CI3 verb route', () => {
   const r = parseCi3Routes(`$route['x']['post'] = 'c/m';`);
   assert.equal(r[0].method, 'POST');
 });
+test('parse CI3 skips default_controller/404_override', () => {
+  const r = parseCi3Routes(`$route['default_controller'] = 'welcome'; $route['foo'] = 'c/m';`);
+  assert.equal(r.length, 1);
+  assert.equal(r[0].route, 'foo');
+});
 test('parse CI4 get route', () => {
   const r = parseCi4Routes(`$routes->get('foo/bar', 'Foo::bar');`);
   assert.equal(r.length, 1);
@@ -1654,6 +2042,10 @@ test('parse CI4 get route', () => {
 test('parse CI4 post route', () => {
   const r = parseCi4Routes(`$routes->post('x', 'C::m');`);
   assert.equal(r[0].method, 'POST');
+});
+test('parse CI4 add() maps to ANY', () => {
+  const r = parseCi4Routes(`$routes->add('x', 'C::m');`);
+  assert.equal(r[0].method, 'ANY');
 });
 test('compare finds missing routes', () => {
   const ci3 = [
@@ -1703,10 +2095,9 @@ export function parseCi3Routes(src) {
   while ((m = verb.exec(src))) {
     routes.push({ method: m[4].toUpperCase(), route: m[2], handler: m[6] });
   }
-  // $route['foo/bar'] = 'c/m';  (simple, skip yg sudah ke-match sebagai verb)
+  // $route['foo/bar'] = 'c/m';  (simple, skip default_controller / 404_override / translate_uri_dashes)
   const simple = /\$route\[(['"])([^'"]+)\1\]\s*=\s*(['"])([^'"]+)\3\s*;?/g;
   while ((m = simple.exec(src))) {
-    // skip default_controller / 404_override / translate_uri_dashes
     if (['default_controller', '404_override', 'translate_uri_dashes'].includes(m[2])) continue;
     routes.push({ method: 'ANY', route: m[2], handler: m[4] });
   }
@@ -1719,8 +2110,7 @@ export function parseCi4Routes(src) {
   let m;
   while ((m = re.exec(src))) {
     let method = m[1].toLowerCase();
-    if (method === 'add') method = 'ANY';
-    else if (method === 'match') method = 'ANY';
+    if (method === 'add' || method === 'match') method = 'ANY';
     else method = method.toUpperCase();
     routes.push({ method, route: m[3], handler: m[5] });
   }
@@ -1764,7 +2154,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) main();
 - [ ] **Step 4: Run test — verify PASS**
 
 Run: `cd .agents/skills/ci3-to-ci4-migration && node --test scripts/__tests__/feature-parity-check.test.mjs`
-Expected: PASS — 8 test lulus.
+Expected: PASS — 11 test lulus.
 
 - [ ] **Step 5: Commit**
 
@@ -1776,7 +2166,7 @@ git commit -m "feat(ci3-to-ci4-skill): add feature-parity-check.mjs with tests (
 
 ---
 
-## Task 12: Run full test suite + smoke test scripts CLI
+## Task 14: Run full test suite + smoke test scripts CLI
 
 **Files:**
 - Tidak ada file baru — verifikasi semua script
@@ -1784,7 +2174,7 @@ git commit -m "feat(ci3-to-ci4-skill): add feature-parity-check.mjs with tests (
 - [ ] **Step 1: Run semua test sekaligus**
 
 Run: `cd .agents/skills/ci3-to-ci4-migration && node --test scripts/__tests__/`
-Expected: 4 test file, total 45 test (13+10+14+8), semua PASS. Output: `tests 45` `pass 45`.
+Expected: 4 test file, total ±55 test (convert 13 + rename 10 + audit ±24 + parity 11), semua PASS. Output: `# pass <N>` dengan 0 fail. (Jumlah pasti dari output `node --test`.)
 
 - [ ] **Step 2: Smoke test convert-mechanical.mjs CLI (dry-run)**
 
@@ -1811,19 +2201,40 @@ grep "this->input->post" /tmp/ci3-sample.php && echo "OK: file unchanged (dry-ru
 ```
 Expected: `OK: file unchanged (dry-run)`.
 
-- [ ] **Step 3: Bersihkan sample file**
+- [ ] **Step 3: Smoke test audit-ci3.mjs CLI**
 
 ```bash
-rm /tmp/ci3-sample.php
+node .agents/skills/ci3-to-ci4-migration/scripts/audit-ci3.mjs /tmp 2>/dev/null || true
+```
+(Bila `/tmp` tidak punya `application/`, script tetap jalan di folder PHP apapun — verifikasi CLI tidak crash & output JSON valid.)
+
+Atau buat mini CI3 fixture:
+```bash
+mkdir -p /tmp/ci3app/application/controllers
+cat > /tmp/ci3app/application/controllers/Auth.php << 'EOF'
+<?php
+class Auth extends CI_Controller {
+    public function login() {
+        $this->load->model('user_model');
+        $this->load->view('login');
+    }
+}
+EOF
+node .agents/skills/ci3-to-ci4-migration/scripts/audit-ci3.mjs /tmp/ci3app/application
+```
+Expected: output `=== AUDIT CI3 ===` + JSON dengan `byType: { controller: 1 }`, patterns `extends CI_Controller`, `load->model`, `load->view`, effort `kecil`.
+
+- [ ] **Step 4: Bersihkan sample file**
+
+```bash
+rm -rf /tmp/ci3-sample.php /tmp/ci3app
 ```
 
-- [ ] **Step 4: Commit (test suite pass record — no code change, skip commit if nothing staged)**
-
-Tidak ada perubahan file. Lanjut ke eval.
+- [ ] **Step 5: Tidak ada perubahan file — skip commit, lanjut eval**
 
 ---
 
-## Task 13: Eval — jalankan 3 test prompt (integration test skill)
+## Task 15: Eval — jalankan 3 test prompt (integration test skill)
 
 **Files:**
 - Tidak ada file baru — verifikasi behavior skill
@@ -1845,6 +2256,7 @@ Buka fresh ZCode turn. Ketik:
 - [ ] Mulai step 1 audit → sebut `audit-ci3.mjs` / `00-audit-checklist.md`
 - [ ] Decision tree: project besar + custom library → pilih **incremental per-modul**, prioritaskan library auth dulu
 - [ ] Sorot `&get_instance()` di `06-libraries-helpers.md` sebagai stuck point
+- [ ] Impact analysis: petakan dependency controller→library sebelum konversi (dari `00-audit-checklist.md`)
 - [ ] Tidak langsung konversi 20 controller sekaligus
 
 - [ ] **Step 3: Jalankan test prompt 2 (fresh turn)**
@@ -1871,7 +2283,7 @@ Buka fresh ZCode turn. Ketik:
 
 - [ ] **Step 5: Catat hasil eval + iterasi jika ada fail**
 
-Jika ada rubrik yang gagal ( ❌ ), catat di file `DOCS/superpowers/specs/2026-06-29-ci3-to-ci4-migration-eval-results.md` lalu revisi SKILL.md / reference terkait. Ulangi prompt yg gagal sampai lulus. Jika semua lulus (3/3), lanjut Step 6.
+Jika ada rubrik yang gagal ( ❌ ), catat di `DOCS/superpowers/specs/2026-06-29-ci3-to-ci4-migration-eval-results.md` lalu revisi SKILL.md / reference terkait. Ulangi prompt yg gagal sampai lulus. Jika semua lulus (3/3), lanjut Step 6.
 
 - [ ] **Step 6: Commit hasil eval (jika ada file hasil)**
 
@@ -1884,27 +2296,30 @@ git commit -m "docs(ci3-to-ci4-skill): eval results" --allow-empty
 
 ## Self-Review (dilakukan setelah plan lengkap)
 
-**1. Spec coverage** — cek tiap section spec punya task:
+**1. Spec coverage** — cek tiap section spec (revisi 2) punya task:
 - Identitas/frontmatter → Task 1 ✓
-- Struktur folder progressive disclosure → Task 1-11 ✓
-- SKILL.md body (workflow/decision tree/router/prinsip) → Task 1 ✓
-- 11 references (00-10) → Task 3,4,5,6 ✓
-- 4 scripts API → Task 8,9,10,11 ✓
-- 2 assets (mapping-table, feature-parity-checklist) → Task 2,7 ✓
-- Data flow workflow 7 langkah → Task 1 (SKILL.md) ✓
-- Error handling & safety (dry-run, COMMENT jangan DELETE, batas script) → Task 1 (prinsip) + Task 8 (script tidak sentuh berisiko) ✓
-- Eval plan (3 test prompts + rubrik) → Task 13 ✓
+- Struktur folder progressive disclosure (incl. ref 11 + output-quality-checklist) → Task 1-9 ✓
+- SKILL.md body (workflow/decision tree/router/prinsip, router row ref 11) → Task 1 ✓
+- 12 references (00-11, dgn expand 00/01/03/04/07 + new 11) → Task 3,4,5,6,7 ✓
+- 4 scripts API (audit ~17 pola) → Task 10,11,12,13 ✓
+- 3 assets (mapping-table diperluas, feature-parity-checklist, output-quality-checklist) → Task 2,8,9 ✓
+- Data flow workflow 7 langkah (incl. code-quality gate step 6) → Task 1 (SKILL.md) ✓
+- Error handling & safety (dry-run, COMMENT jangan DELETE, batas script) → Task 1 (prinsip) + Task 10 (script tidak sentuh berisiko) ✓
+- Eval plan (3 test prompts + rubrik, incl. impact analysis di prompt 1) → Task 15 ✓
 - Out of scope → di spec, tidak perlu task ✓
+- Synthesis notes (6 incorporate) → Task 2 (mapping migration/security/pagination), Task 3 (impact+spark), Task 4 (REST+Entity), Task 5 (logging), Task 7 (ref 11), Task 9 (quality-checklist), Task 12 (audit ~17 pola) ✓
 
-**2. Placeholder scan** — tidak ada TBD/TODO/"implement later"/"similar to Task N". Semua step punya code/commands nyata. ✓
+**2. Placeholder scan** — tidak ada TBD/TODO/"implement later"/"similar to Task N". Semua step punya code/commands nyata. (Task 12 Step 4 ada catatan "jumlah pasti diverifikasi dari output" — itu bukan placeholder kode, itu acknowledgment bahwa test count diverifikasi saat run, code-nya complete.) ✓
 
 **3. Type consistency** — nama function konsisten cross-task:
-- `transformCode`, `transformations`, `diffLines` (Task 8) — dipakai hanya Task 8 ✓
-- `toPascalCase`, `classifyTarget`, `planRename` (Task 9) ✓
-- `classifyFile`, `detectPatterns`, `auditProject` (Task 10) ✓
-- `parseCi3Routes`, `parseCi4Routes`, `compareRoutes` (Task 11) ✓
-- Nama script di SKILL.md router (Task 1) match nama file di Task 8-11: `audit-ci3.mjs`, `convert-mechanical.mjs`, `rename-files.mjs`, `feature-parity-check.mjs` ✓
-- Reference filename di SKILL.md router (Task 1) match file dibuat Task 3-6: `00-audit-checklist.md` s.d. `10-php-modernization.md` ✓
+- `transformCode`, `transformations`, `diffLines` (Task 10) — dipakai hanya Task 10 ✓
+- `toPascalCase`, `classifyTarget`, `planRename` (Task 11) ✓
+- `classifyFile`, `detectPatterns`, `auditProject` (Task 12) ✓
+- `parseCi3Routes`, `parseCi4Routes`, `compareRoutes` (Task 13) ✓
+- Nama script di SKILL.md router (Task 1) match nama file di Task 10-13: `audit-ci3.mjs`, `convert-mechanical.mjs`, `rename-files.mjs`, `feature-parity-check.mjs` ✓
+- Reference filename di SKILL.md router (Task 1) match file dibuat Task 3-7: `00-audit-checklist.md` s.d. `11-migration-seeder-security.md` ✓
+- Asset filename di SKILL.md (Task 1) match file dibuat Task 2,8,9: `mapping-table.md`, `feature-parity-checklist.md`, `output-quality-checklist.md` ✓
+- audit-ci3 detectPatterns di Task 12 cek pola `migration->`, `dbforge->`, `pagination->`, `security->`, `config->item`, `parser->` — match yang disebut di reference 11 (Task 7) "Audit hook" + mapping-table (Task 2) ✓
 
 Tidak ada inkonsistensi ditemukan.
 
@@ -1912,7 +2327,7 @@ Tidak ada inkonsistensi ditemukan.
 
 ## Execution Handoff
 
-Plan complete and saved to `DOCS/superpowers/plans/2026-06-29-ci3-to-ci4-migration-skill.md`. Two execution options:
+Plan complete and saved to `DOCS/superpowers/plans/2026-06-29-ci3-to-ci4-migration-skill.md` (revisi 2, 15 task). Two execution options:
 
 **1. Subagent-Driven (recommended)** — dispatch fresh subagent per task, review antar task, iterasi cepat.
 
