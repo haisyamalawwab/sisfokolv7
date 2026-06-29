@@ -21,6 +21,8 @@ use Livewire\Component;
  */
 class CrudlfixPage extends Component
 {
+    use \App\Livewire\Crudlfix\Traits\HasCrudlfixAuth;
+
     // Raw config (Livewire-safe)
     public ?string $controllerClass = null;
     public string $modelClass = '';
@@ -33,9 +35,10 @@ class CrudlfixPage extends Component
     public array $filterConfig = [];
     public array $validationRules = [];
     public array $extraViewData = [];
-    public int $perPage = 15;
+    public $perPage = 25;
     public string $defaultSort = 'created_at';
     public string $defaultDir = 'desc';
+    public ?array $sortKeys = null;
     public ?string $permissionPrefix = null;
     public ?string $authMode = null;
     public bool $showDetail = true;   // auto: hidden when no show.blade.php exists
@@ -65,9 +68,10 @@ class CrudlfixPage extends Component
         array $filters = [],
         array $rules = [],
         array $viewData = [],
-        int $perPage = 15,
+        $perPage = 25,
         string $defaultSort = 'created_at',
         string $defaultDir = 'desc',
+        ?array $sortKeys = null,
         ?string $authorize = null,
         ?string $authType = null,
         string $action = 'index',
@@ -88,9 +92,10 @@ class CrudlfixPage extends Component
             $this->filterConfig = $cfg->filters ?? [];
             $this->validationRules = []; // form resolves rules from controller
             $this->extraViewData = $cfg->viewData ?? [];
-            $this->perPage = $cfg->perPage ?? 15;
+            $this->perPage = $cfg->perPage ?? 25;
             $this->defaultSort = $cfg->defaultSort ?? 'created_at';
             $this->defaultDir = $cfg->defaultDir ?? 'desc';
+            $this->sortKeys = $cfg->sortKeys ?? null;
             $this->permissionPrefix = $cfg->authorize;
             $this->authMode = $cfg->authType;
 
@@ -108,6 +113,7 @@ class CrudlfixPage extends Component
             $this->perPage = $perPage;
             $this->defaultSort = $defaultSort;
             $this->defaultDir = $defaultDir;
+            $this->sortKeys = $sortKeys;
             $this->permissionPrefix = $authorize;
             $this->authMode = $authType;
 
@@ -145,9 +151,10 @@ class CrudlfixPage extends Component
                     'with' => $this->withRelations,
                     'filters' => $this->filterConfig,
                     'rules' => $this->validationRules,
-                    'perPage' => $this->perPage,
+                    'perPage' => $this->perPage === 'all' ? 1000 : (int)$this->perPage,
                     'defaultSort' => $this->defaultSort,
                     'defaultDir' => $this->defaultDir,
+                    'sortKeys' => $this->sortKeys,
                     'authorize' => $this->permissionPrefix,
                     'authType' => $this->authMode,
                 ]);

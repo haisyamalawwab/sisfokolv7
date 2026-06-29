@@ -23,9 +23,9 @@ class CrudlfixTable extends Component
     public array $searchFields = [];
     public array $withRelations = [];
     public array $filterConfig = [];
-    public int $perPage = 15;
     public string $defaultSort = 'created_at';
     public string $defaultDir = 'desc';
+    public ?array $sortKeys = null;
     public ?array $exportColumns = null;
     public ?string $permissionPrefix = null;
     public ?string $authMode = null;
@@ -45,9 +45,10 @@ class CrudlfixTable extends Component
         array $search = [],
         array $with = [],
         array $filters = [],
-        int $perPage = 15,
+        $perPage = 25,
         string $defaultSort = 'created_at',
         string $defaultDir = 'desc',
+        ?array $sortKeys = null,
         ?array $exportColumns = null,
         ?string $authorize = null,
         ?string $authType = null,
@@ -64,6 +65,7 @@ class CrudlfixTable extends Component
         $this->perPage = $perPage;
         $this->defaultSort = $defaultSort;
         $this->defaultDir = $defaultDir;
+        $this->sortKeys = $sortKeys;
         $this->exportColumns = $exportColumns;
         $this->permissionPrefix = $authorize;
         $this->authMode = $authType;
@@ -87,9 +89,10 @@ class CrudlfixTable extends Component
                 'search' => $this->searchFields,
                 'with' => $this->withRelations,
                 'filters' => $this->filterConfig,
-                'perPage' => $this->perPage,
+                'perPage' => $this->perPage === 'all' ? 1000 : (int)$this->perPage,
                 'defaultSort' => $this->defaultSort,
                 'defaultDir' => $this->defaultDir,
+                'sortKeys' => $this->sortKeys,
                 'exportColumns' => $this->exportColumns,
                 'authorize' => $this->permissionPrefix,
                 'authType' => $this->authMode,

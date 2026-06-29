@@ -53,5 +53,32 @@ trait HasCrudlfixAuth
         // null/absent → no in-component auth (route middleware handles it)
     }
 
+    /**
+     * Check if a CRUD action is authorized. Returns boolean.
+     */
+    public function checkCrudlfixAction(string $action, ?Model $model = null): bool
+    {
+        $config = $this->getConfigProperty();
+
+        if ($config->authType === 'policy') {
+            return $model
+                ? Gate::allows($action, $model)
+                : Gate::allows($action, $config->model);
+        } elseif ($config->authType === 'permission' && $config->authorize) {
+            // ADR-006: set team context for Spatie Permission teams mode
+            $tenantCtx = app(TenantContext::class);
+            if ($tenantCtx->isInitialized()) {
+                setPermissionsTeamId($tenantCtx->id);
+            }
+
+            $permission = "{$config->authorize}.{$action}";
+            $user = auth()->user();
+
+            return $user && $user->can($permission) ? true : false;
+        }
+
+        return true;
+    }
+
     abstract protected function getConfigProperty(): CrudlfixConfig;
 }

@@ -17,7 +17,7 @@ trait HasCrudlfixTable
     public string $sortField = '';
     public string $sortDirection = 'asc';
     public array $activeFilters = [];
-    public int $perPage = 15;
+    public $perPage = 25;
     public int $currentPage = 1;
     public array $selected = [];
     public bool $selectAll = false;
@@ -26,10 +26,15 @@ trait HasCrudlfixTable
     {
         $this->sortField = $config->defaultSort ?? 'created_at';
         $this->sortDirection = $config->defaultDir ?? 'desc';
-        $this->perPage = $config->perPage ?? 15;
+        $this->perPage = $config->perPage ?? 25;
     }
 
     public function updatedSearchQuery(): void
+    {
+        $this->currentPage = 1;
+    }
+
+    public function updatedPerPage(): void
     {
         $this->currentPage = 1;
     }
@@ -137,9 +142,47 @@ trait HasCrudlfixTable
             }
         }
 
-        // Apply sorting
+        // [2026-06-29 | AG] Apply advanced sorting (with relation support and sortKeys overrides)
         if ($this->sortField) {
-            $query->orderBy($this->sortField, $this->sortDirection);
+            $field = $this->sortField;
+
+            // Check if there is an override in sortKeys config
+            if ($config->sortKeys && isset($config->sortKeys[$field])) {
+                $field = $config->sortKeys[$field];
+            }
+
+            if (str_contains($field, '.')) {
+                $parts = explode('.', $field);
+                $relationName = $parts[0];
+                $relationField = $parts[1];
+
+                if (method_exists($query->getModel(), $relationName)) {
+                    $relation = $query->getModel()->$relationName();
+                    if ($relation instanceof \Illuminate\Database\Eloquent\Relations\BelongsTo) {
+                        $relatedTable = $relation->getRelated()->getTable();
+                        $foreignKey = $relation->getForeignKeyName();
+                        $ownerKey = $relation->getOwnerKeyName();
+                        $currentTable = $query->getModel()->getTable();
+
+                        // Avoid joining the same table multiple times
+                        $isJoined = collect($query->getQuery()->joins)->contains(function ($join) use ($relatedTable) {
+                            return $join->table === $relatedTable;
+                        });
+
+                        if (!$isJoined) {
+                            $query->select("{$currentTable}.*")
+                                ->join($relatedTable, "{$currentTable}.{$foreignKey}", '=', "{$relatedTable}.{$ownerKey}");
+                        }
+                        $query->orderBy("{$relatedTable}.{$relationField}", $this->sortDirection);
+                    } else {
+                        $query->orderBy($field, $this->sortDirection);
+                    }
+                } else {
+                    $query->orderBy($field, $this->sortDirection);
+                }
+            } else {
+                $query->orderBy($field, $this->sortDirection);
+            }
         }
 
         return $query;
@@ -153,7 +196,14 @@ trait HasCrudlfixTable
         $config = $this->getConfigProperty();
         $query = $this->buildTableQuery($config);
 
-        return $query->paginate($this->perPage, ['*'], 'page', $this->currentPage);
+        $limit = $this->perPage;
+        if ($limit === 'all' || (int)$limit >= 1000 || (int)$limit <= 0) {
+            $limit = 1000;
+        } else {
+            $limit = (int) $limit;
+        }
+
+        return $query->paginate($limit, ['*'], 'page', $this->currentPage);
     }
 
     /**

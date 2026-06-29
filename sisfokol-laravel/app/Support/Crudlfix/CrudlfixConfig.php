@@ -55,13 +55,16 @@ class CrudlfixConfig
     public ?array $viewData = null;
 
     /** Pagination per page */
-    public int $perPage = 15;
+    public int $perPage = 25;
 
     /** Default sort field */
     public ?string $defaultSort = 'created_at';
 
     /** Default sort direction */
     public string $defaultDir = 'desc';
+
+    /** Custom sort key mappings for relationship columns (e.g. ['kelas.nama' => 'kelas.nama']) */
+    public ?array $sortKeys = null;
 
     /** Export columns (for CSV export) */
     public ?array $exportColumns = null;
