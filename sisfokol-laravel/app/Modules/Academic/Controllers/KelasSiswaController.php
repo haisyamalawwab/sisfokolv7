@@ -20,6 +20,7 @@ class KelasSiswaController extends Controller
             'view'       => 'academic.kelas-siswa',
             'route'      => 'academic.kelas-siswa',
             'authorize'  => 'kelas-siswa',
+            'authType'   => 'permission',
             'search'     => [],
             'with'       => ['siswa', 'kelas', 'tahunAjaran'],
             'rules'      => [

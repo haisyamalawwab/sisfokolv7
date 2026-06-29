@@ -34,18 +34,54 @@ trait HasCrudlfixForm
     }
 
     /**
+     * Resolve action-specific rules (store vs update) and apply {{id}} placeholder.
+     *
+     * CrudlfixConfig rules may be:
+     *   - Flat array: ['nis' => 'required|...', ...]  (same for create+edit)
+     *   - Nested:     ['store' => [...], 'update' => [...]]
+     *
+     * For edit mode, {{id}} is replaced with the record's ID so rules like
+     * `unique:table,col,{{id}}` exclude the current record.
+     */
+    protected function resolveRules(): array
+    {
+        $config = $this->getConfigProperty();
+        $rules = $config->rules ?? [];
+
+        // Pick store/update ruleset when nested
+        if (is_array($rules) && isset($rules['store']) && is_array($rules['store'])) {
+            $action = $this->isEdit ? 'update' : 'store';
+            $rules = $rules[$action] ?? $rules['store'];
+        }
+
+        // Resolve {{id}} placeholder against the record being updated
+        if ($this->isEdit && $this->editId) {
+            foreach ($rules as $field => $rule) {
+                if (is_string($rule)) {
+                    $rules[$field] = str_replace('{{id}}', $this->editId, $rule);
+                }
+            }
+        }
+
+        return is_array($rules) ? $rules : [];
+    }
+
+    /**
      * Real-time single field validation on change.
      */
     public function updated($field): void
     {
         $config = $this->getConfigProperty();
+        $allRules = $this->resolveRules();
 
-        if (empty($config->rules)) {
+        if (empty($allRules)) {
             return;
         }
 
-        // Only validate if field has a rule
-        $rules = [$field => $config->rules[$field] ?? ''];
+        // Strip the "data." prefix Livewire adds to nested property updates
+        $field = str_starts_with($field, 'data.') ? substr($field, 5) : $field;
+
+        $rules = [$field => $allRules[$field] ?? ''];
         $messages = $config->messages ?? [];
 
         if (empty($rules[$field])) {
@@ -70,12 +106,13 @@ trait HasCrudlfixForm
     public function saveForm(): mixed
     {
         $config = $this->getConfigProperty();
+        $rules = $this->resolveRules();
 
         // Validate all fields
         try {
             $validated = Validator::make(
                 $this->data,
-                $config->rules ?? [],
+                $rules,
                 $config->messages ?? []
             )->validate();
         } catch (ValidationException $e) {

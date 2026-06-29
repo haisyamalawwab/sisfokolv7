@@ -24,6 +24,7 @@ class JadwalController extends Controller
             'view'       => 'academic.jadwal',
             'route'      => 'academic.jadwal',
             'authorize'  => 'jadwal',
+            'authType'   => 'policy',
             'search'     => [],
             'with'       => ['tahunAjaran', 'semester', 'kelas', 'mapel', 'guru'],
 

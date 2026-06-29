@@ -8,14 +8,21 @@ use Livewire\Component;
 /**
  * Livewire page orchestrator for Crudlfix.
  *
- * Manages CRUD mode switching (index/create/edit/show) and
- * coordinates between Table, Form, and Modal sub-components.
+ * Manages CRUD mode switching (index/create/edit/show) and coordinates
+ * between Table and Form sub-components.
  *
- * Accepts raw arrays and builds CrudlfixConfig internally.
+ * When a `controller` FQCN is provided, backend config (model, route, search,
+ * with, rules, auth, viewData) is resolved from the controller's
+ * getCrudlfixConfig() at mount — keeping the controller as the single source
+ * of truth. View-layer config (columns, formFields) still comes from the
+ * Blade view since CrudlfixConfig does not carry display definitions.
+ *
+ * Falls back to raw arrays for backward compatibility (pilot pattern).
  */
 class CrudlfixPage extends Component
 {
-    // Raw config arrays (Livewire-safe)
+    // Raw config (Livewire-safe)
+    public ?string $controllerClass = null;
     public string $modelClass = '';
     public string $viewPrefix = '';
     public string $routePrefix = '';
@@ -31,6 +38,7 @@ class CrudlfixPage extends Component
     public string $defaultDir = 'desc';
     public ?string $permissionPrefix = null;
     public ?string $authMode = null;
+    public bool $showDetail = true;   // auto: hidden when no show.blade.php exists
 
     // State
     public string $mode = 'index'; // index|create|edit|show
@@ -42,12 +50,14 @@ class CrudlfixPage extends Component
 
     protected $listeners = [
         'crudlfix-saved' => 'handleSaved',
+        'crudlfix-edit' => 'handleEditRequest',
     ];
 
     public function mount(
-        string $model,
-        string $view,
-        string $route,
+        ?string $controller = null,
+        string $model = '',
+        string $view = '',
+        string $route = '',
         array $columns = [],
         array $formFields = [],
         array $search = [],
@@ -63,50 +73,85 @@ class CrudlfixPage extends Component
         string $action = 'index',
         ?int $editId = null,
     ): void {
-        // Store raw values (Livewire-safe)
-        $this->modelClass = $model;
-        $this->viewPrefix = $view;
-        $this->routePrefix = $route;
+        $this->controllerClass = $controller;
         $this->columns = $columns;
         $this->formFields = $formFields;
-        $this->searchFields = $search;
-        $this->withRelations = $with;
-        $this->filterConfig = $filters;
-        $this->validationRules = $rules;
-        $this->extraViewData = $viewData;
-        $this->perPage = $perPage;
-        $this->defaultSort = $defaultSort;
-        $this->defaultDir = $defaultDir;
-        $this->permissionPrefix = $authorize;
-        $this->authMode = $authType;
 
-        $this->title = ucfirst(str_replace('.', ' ', $view));
+        if ($controller) {
+            // Resolve backend config from the controller (single source of truth)
+            $cfg = app($controller)->getCrudlfixConfig();
+            $this->modelClass = $cfg->model;
+            $this->viewPrefix = $cfg->view;
+            $this->routePrefix = $cfg->route;
+            $this->searchFields = $cfg->search ?? [];
+            $this->withRelations = $cfg->with ?? [];
+            $this->filterConfig = $cfg->filters ?? [];
+            $this->validationRules = []; // form resolves rules from controller
+            $this->extraViewData = $cfg->viewData ?? [];
+            $this->perPage = $cfg->perPage ?? 15;
+            $this->defaultSort = $cfg->defaultSort ?? 'created_at';
+            $this->defaultDir = $cfg->defaultDir ?? 'desc';
+            $this->permissionPrefix = $cfg->authorize;
+            $this->authMode = $cfg->authType;
+
+            $this->title = class_basename($cfg->model);
+        } else {
+            // Backward-compatible flat-array mode (pilot pattern)
+            $this->modelClass = $model;
+            $this->viewPrefix = $view;
+            $this->routePrefix = $route;
+            $this->searchFields = $search;
+            $this->withRelations = $with;
+            $this->filterConfig = $filters;
+            $this->validationRules = $rules;
+            $this->extraViewData = $viewData;
+            $this->perPage = $perPage;
+            $this->defaultSort = $defaultSort;
+            $this->defaultDir = $defaultDir;
+            $this->permissionPrefix = $authorize;
+            $this->authMode = $authType;
+
+            $this->title = ucfirst(str_replace('.', ' ', $view));
+        }
+
+        // Auto-hide detail button when no show view exists (prevents "view not found" 404)
+        $this->showDetail = view()->exists($this->viewPrefix . '.show');
+
+        // [2026-06-29 | AG] Resolve action and editId from request if present (for URL fallbacks when view doesn't exist)
+        $resolvedAction = request()->input('action', $action);
+        $resolvedEditId = request()->input('editId') !== null ? (int) request()->input('editId') : $editId;
 
         // Set mode
-        $this->mode = in_array($action, ['index', 'create', 'edit', 'show']) ? $action : 'index';
-        $this->editId = $editId;
+        // $this->mode = in_array($action, ['index', 'create', 'edit', 'show']) ? $action : 'index'; // [2026-06-29 | AG] commented for fallback support
+        // $this->editId = $editId; // [2026-06-29 | AG] commented for fallback support
+        $this->mode = in_array($resolvedAction, ['index', 'create', 'edit', 'show']) ? $resolvedAction : 'index';
+        $this->editId = $resolvedEditId;
     }
 
     /**
-     * Build CrudlfixConfig from raw arrays.
+     * Build CrudlfixConfig from raw arrays (for child components that need it).
      */
     public function getConfigProperty(): CrudlfixConfig
     {
         if ($this->_config === null) {
-            $this->_config = CrudlfixConfig::make([
-                'model' => $this->modelClass,
-                'view' => $this->viewPrefix,
-                'route' => $this->routePrefix,
-                'search' => $this->searchFields,
-                'with' => $this->withRelations,
-                'filters' => $this->filterConfig,
-                'rules' => $this->validationRules,
-                'perPage' => $this->perPage,
-                'defaultSort' => $this->defaultSort,
-                'defaultDir' => $this->defaultDir,
-                'authorize' => $this->permissionPrefix,
-                'authType' => $this->authMode,
-            ]);
+            if ($this->controllerClass) {
+                $this->_config = app($this->controllerClass)->getCrudlfixConfig();
+            } else {
+                $this->_config = CrudlfixConfig::make([
+                    'model' => $this->modelClass,
+                    'view' => $this->viewPrefix,
+                    'route' => $this->routePrefix,
+                    'search' => $this->searchFields,
+                    'with' => $this->withRelations,
+                    'filters' => $this->filterConfig,
+                    'rules' => $this->validationRules,
+                    'perPage' => $this->perPage,
+                    'defaultSort' => $this->defaultSort,
+                    'defaultDir' => $this->defaultDir,
+                    'authorize' => $this->permissionPrefix,
+                    'authType' => $this->authMode,
+                ]);
+            }
         }
         return $this->_config;
     }
@@ -121,6 +166,14 @@ class CrudlfixPage extends Component
     {
         $this->mode = 'index';
         $this->editId = null;
+    }
+
+    /**
+     * Handle inline edit request from the table (no URL navigation).
+     */
+    public function handleEditRequest(array $data): void
+    {
+        $this->setMode('edit', (int) ($data['id'] ?? 0));
     }
 
     public function render()

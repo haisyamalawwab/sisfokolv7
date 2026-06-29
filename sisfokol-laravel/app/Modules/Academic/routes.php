@@ -24,14 +24,6 @@ Route::middleware(['web', 'auth'])->prefix('academic')->name('academic.')->group
     Route::resource('kelas-siswa', KelasSiswaController::class);
     Route::resource('jadwal', JadwalController::class);
 
-    // Livewire test route for Kelas (pilot migration)
-    Route::get('kelas-livewire', function () {
-        $gurus = \App\Modules\Academic\Models\Guru::where('aktif', true)->orderBy('nama')->get();
-        $branches = \App\Modules\Tenancy\Models\Branch::orderBy('nama')->get();
-
-        return view('academic.kelas.index-livewire', compact('gurus', 'branches'));
-    })->name('kelas.livewire');
-
     // CRUDLFIX API endpoints
     Route::get('api/jadwal', [JadwalController::class, 'api'])->name('jadwal.api');
 });

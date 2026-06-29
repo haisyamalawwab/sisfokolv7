@@ -14,6 +14,7 @@ class CrudlfixTable extends Component
 {
     use \App\Livewire\Crudlfix\Traits\HasCrudlfixTable;
     use \App\Livewire\Crudlfix\Traits\HasCrudlfixActions;
+    use \App\Livewire\Crudlfix\Traits\HasCrudlfixAuth;
 
     // Raw config (Livewire-safe)
     public string $modelClass = '';
@@ -28,6 +29,11 @@ class CrudlfixTable extends Component
     public ?array $exportColumns = null;
     public ?string $permissionPrefix = null;
     public ?string $authMode = null;
+
+    // Behavior flags
+    public bool $inlineEdit = true;   // false → edit navigates to route (index-only mode)
+    public bool $showEdit = true;     // false → hide edit button (e.g. no edit view)
+    public bool $showDetail = true;   // false → hide detail button (e.g. no show view)
 
     // Built internally
     protected ?CrudlfixConfig $_config = null;
@@ -45,6 +51,9 @@ class CrudlfixTable extends Component
         ?array $exportColumns = null,
         ?string $authorize = null,
         ?string $authType = null,
+        bool $inlineEdit = true,
+        bool $showEdit = true,
+        bool $showDetail = true,
     ): void {
         $this->modelClass = $model;
         $this->routePrefix = $route;
@@ -58,8 +67,15 @@ class CrudlfixTable extends Component
         $this->exportColumns = $exportColumns;
         $this->permissionPrefix = $authorize;
         $this->authMode = $authType;
+        $this->inlineEdit = $inlineEdit;
+        $this->showEdit = $showEdit;
+        $this->showDetail = $showDetail;
 
         $this->initTable($this->getConfigProperty());
+
+        // Pick up initial search from the URL query param (e.g. ?search=Ahmad)
+        // so deep-links and traditional search links keep working on first load.
+        $this->searchQuery = (string) (request()->input('search', ''));
     }
 
     public function getConfigProperty(): CrudlfixConfig
@@ -82,8 +98,20 @@ class CrudlfixTable extends Component
         return $this->_config;
     }
 
+    /**
+     * Dispatch edit request to the parent CrudlfixPage for inline mode switching.
+     */
+    public function editRecord(int $id): void
+    {
+        $this->dispatch('crudlfix-edit', ['id' => $id]);
+    }
+
     public function render()
     {
+        // Authorize viewAny on every render (including AJAX) — Livewire requests
+        // bypass the controller's in-method authorization otherwise
+        $this->authorizeCrudlfixAction('viewAny');
+
         $rows = $this->getRowsProperty();
 
         return view('livewire.crudlfix.table', [

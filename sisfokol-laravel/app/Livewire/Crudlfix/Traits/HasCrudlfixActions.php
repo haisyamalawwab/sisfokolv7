@@ -39,8 +39,10 @@ trait HasCrudlfixActions
 
         if ($this->deleteType === 'single' && $this->deleteId) {
             $record = $model::findOrFail($this->deleteId);
+            $this->authorizeCrudlfixAction('delete', $record);
             $record->delete();
         } elseif ($this->deleteType === 'bulk' && !empty($this->selected)) {
+            $this->authorizeCrudlfixAction('delete');
             $model::whereIn('id', $this->selected)->delete();
             $this->selected = [];
             $this->selectAll = false;

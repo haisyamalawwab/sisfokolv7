@@ -19,6 +19,7 @@ class KelasController extends Controller
             'view'       => 'academic.kelas',
             'route'      => 'academic.kelas',
             'authorize'  => 'kelas',
+            'authType'   => 'policy',
             'search'     => ['nama'],
             'with'       => ['waliKelas', 'branch'],
             'rules'      => [
