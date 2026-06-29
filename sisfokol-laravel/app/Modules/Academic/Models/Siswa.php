@@ -5,7 +5,7 @@ namespace App\Modules\Academic\Models;
 use App\Models\Traits\{BelongsToTenant, TracksAuditColumns};
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\{BelongsToMany, HasMany};
+use Illuminate\Database\Eloquent\Relations\{BelongsToMany, HasMany, HasOne};
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Siswa extends Model
@@ -64,5 +64,11 @@ class Siswa extends Model
     public function kelasSiswa(): HasMany
     {
         return $this->hasMany(KelasSiswa::class, 'siswa_id');
+    }
+
+    // [2026-06-29 | AG] add relationship to TabunganSiswa model
+    public function tabunganSiswa(): HasOne
+    {
+        return $this->hasOne(\App\Modules\Finance\Models\TabunganSiswa::class, 'siswa_id');
     }
 }

@@ -90,4 +90,12 @@ class TabunganMutasiTest extends TestCase
 
         $this->service->setor($tabungan, -100);
     }
+
+    public function test_siswa_has_one_tabungan_siswa_relation(): void
+    {
+        $tabungan = $this->service->getOrCreateAccount($this->siswa);
+        
+        $this->assertTrue($this->siswa->tabunganSiswa()->exists());
+        $this->assertEquals($tabungan->id, $this->siswa->tabunganSiswa->id);
+    }
 }
